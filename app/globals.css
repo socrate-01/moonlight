@@ -1,0 +1,195 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ---------- Theme tokens ---------- */
+:root {
+  /* Light — "old money" ivory */
+  --bg: 241 239 230;
+  --surface: 234 229 215;
+  --surface2: 248 246 238;
+  --fg: 34 26 63;
+  --muted: 90 82 118;
+  --gold: 169 136 76;
+  --accent: 75 46 140; /* indigo */
+}
+
+.dark {
+  /* Purple / night glamour */
+  --bg: 9 11 30;
+  --surface: 20 23 58;
+  --surface2: 27 31 74;
+  --fg: 242 239 230;
+  --muted: 183 178 199;
+  --gold: 201 162 94;
+  --accent: 224 99 42; /* terracotta */
+}
+
+* {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background-color: rgb(var(--bg));
+  color: rgb(var(--fg));
+  overflow-x: hidden;
+  transition: background-color 0.6s ease, color 0.5s ease;
+}
+
+section {
+  transition: background-color 0.6s ease;
+}
+
+::selection {
+  background: rgb(var(--accent));
+  color: #fff;
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+}
+::-webkit-scrollbar-track {
+  background: rgb(var(--surface));
+}
+::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, #4b2e8c, rgb(var(--gold)));
+  border-radius: 999px;
+}
+
+@layer components {
+  .eyebrow {
+    @apply inline-flex items-center gap-4 font-sans text-[11px] uppercase tracking-luxe text-gold;
+  }
+  .eyebrow::before,
+  .eyebrow::after {
+    content: "";
+    @apply h-px w-8 bg-gold/50;
+  }
+  .eyebrow-plain {
+    @apply font-sans text-[11px] uppercase tracking-luxe text-gold;
+  }
+
+  .numeral {
+    @apply font-display text-sm italic tracking-wide2 text-fg/40;
+  }
+
+  .rule {
+    @apply h-px w-full bg-gradient-to-r from-transparent via-gold/50 to-transparent;
+  }
+
+  /* Primary — glamorous animated gradient pill */
+  .btn-luxe {
+    @apply relative inline-flex items-center justify-center gap-3 overflow-hidden
+      rounded-full px-9 py-4 font-sans text-[12px] uppercase tracking-wide2
+      text-white transition-all duration-500;
+    background-image: linear-gradient(115deg, #4b2e8c, #e0632a 55%, #c9a25e);
+    background-size: 200% 100%;
+    background-position: 0% 50%;
+    box-shadow: 0 12px 40px -14px rgba(224, 99, 42, 0.65);
+  }
+  .btn-luxe:hover {
+    background-position: 100% 50%;
+    transform: translateY(-2px);
+    box-shadow: 0 18px 50px -14px rgba(224, 99, 42, 0.8);
+  }
+  /* shine sweep */
+  .btn-luxe::after {
+    content: "";
+    @apply absolute inset-0;
+    background: linear-gradient(
+      100deg,
+      transparent 30%,
+      rgba(255, 255, 255, 0.35) 50%,
+      transparent 70%
+    );
+    transform: translateX(-120%);
+    transition: transform 0.9s ease;
+  }
+  .btn-luxe:hover::after {
+    transform: translateX(120%);
+  }
+
+  .btn-ghost {
+    @apply inline-flex items-center justify-center gap-2 rounded-full border border-fg/25
+      px-7 py-3.5 font-sans text-[11px] uppercase tracking-wide2 text-fg
+      backdrop-blur-sm transition-all duration-300 hover:border-fg hover:bg-fg hover:text-bg;
+  }
+
+  .card-surface {
+    @apply border border-fg/10 bg-surface2/60 backdrop-blur-md;
+  }
+}
+
+/* Film grain */
+.grain::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  pointer-events: none;
+  opacity: 0.05;
+  mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.82' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+/* Neon gradient frame with a soft pulsing glow */
+.neon-frame {
+  position: relative;
+  border-radius: 1.65rem;
+  padding: 1.6px;
+  background: linear-gradient(130deg, #4b2e8c, #e0632a 55%, #c9a25e);
+  animation: neonPulse 3.8s ease-in-out infinite;
+}
+.neon-frame::before {
+  content: "";
+  position: absolute;
+  inset: -1px;
+  border-radius: inherit;
+  background: inherit;
+  filter: blur(11px);
+  opacity: 0.65;
+  z-index: -1;
+}
+@keyframes neonPulse {
+  0%,
+  100% {
+    box-shadow: 0 0 18px rgba(224, 99, 42, 0.4), 0 0 42px rgba(75, 46, 140, 0.3);
+  }
+  50% {
+    box-shadow: 0 0 30px rgba(224, 99, 42, 0.65), 0 0 78px rgba(75, 46, 140, 0.5);
+  }
+}
+
+.text-gradient {
+  background: linear-gradient(120deg, #4b2e8c, #e0632a 60%, #c9a25e);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.drop-cap::first-letter {
+  font-family: var(--font-display);
+  float: left;
+  font-size: 4.4rem;
+  line-height: 0.82;
+  padding-right: 0.6rem;
+  padding-top: 0.4rem;
+  color: rgb(var(--accent));
+  font-weight: 500;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-kenburns,
+  .animate-marquee,
+  .animate-floaty,
+  .animate-drift,
+  .animate-shimmer,
+  .neon-frame {
+    animation: none !important;
+  }
+}
