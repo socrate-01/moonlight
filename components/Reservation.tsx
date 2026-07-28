@@ -6,8 +6,72 @@ import { AnimatePresence, motion } from "framer-motion";
 import Reveal from "./Reveal";
 import FauxQR from "./FauxQR";
 
-type FormState = { name: string; email: string; phone: string };
-const empty: FormState = { name: "", email: "", phone: "" };
+type FormState = {
+  name: string;
+  email: string;
+  phone: string;
+  alcohol: string; // "" | "oui" | "non"
+  allergies: string; // "" | "oui" | "non"
+  allergyDetails: string;
+};
+const empty: FormState = {
+  name: "",
+  email: "",
+  phone: "",
+  alcohol: "",
+  allergies: "",
+  allergyDetails: "",
+};
+
+function Choice({
+  name,
+  label,
+  value,
+  onChange,
+}: {
+  name: string;
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+}) {
+  const options = [
+    { v: "oui", t: "Oui" },
+    { v: "non", t: "Non" },
+  ];
+  return (
+    <fieldset>
+      <legend className="mb-2.5 block font-sans text-[11px] uppercase tracking-wide2 text-gold">
+        {label}
+      </legend>
+      <div className="flex gap-3">
+        {options.map((o) => {
+          const active = value === o.v;
+          return (
+            <label
+              key={o.v}
+              className={`flex-1 cursor-pointer rounded-full border px-5 py-2.5 text-center font-sans text-[12px] uppercase tracking-wide2 transition-all duration-300 ${
+                active
+                  ? "border-transparent bg-gold text-night shadow-[0_0_18px_-4px_rgba(201,162,94,0.75)]"
+                  : "border-fg/25 text-fg hover:border-fg/60"
+              }`}
+            >
+              <input
+                type="radio"
+                name={name}
+                value={o.v}
+                checked={active}
+                onChange={() => onChange(o.v)}
+                required
+                className="sr-only"
+              />
+              {o.t}
+            </label>
+          );
+        })}
+      </div>
+    </fieldset>
+  );
+}
 
 function Field({
   id, label, type = "text", value, onChange, placeholder, autoComplete,
@@ -118,6 +182,54 @@ export default function Reservation() {
                         <Field id="name" label="Nom complet" value={form.name} onChange={set("name")} placeholder="Prénom & nom" autoComplete="name" />
                         <Field id="email" label="Adresse email" type="email" value={form.email} onChange={set("email")} placeholder="vous@exemple.com" autoComplete="email" />
                         <Field id="phone" label="Téléphone" type="tel" value={form.phone} onChange={set("phone")} placeholder="+33 6 00 00 00 00" autoComplete="tel" />
+
+                        <Choice
+                          name="alcohol"
+                          label="Consommez-vous de l'alcool ?"
+                          value={form.alcohol}
+                          onChange={set("alcohol")}
+                        />
+
+                        <Choice
+                          name="allergies"
+                          label="Avez-vous des allergies ?"
+                          value={form.allergies}
+                          onChange={(v) =>
+                            setForm((f) => ({
+                              ...f,
+                              allergies: v,
+                              allergyDetails: v === "oui" ? f.allergyDetails : "",
+                            }))
+                          }
+                        />
+
+                        <AnimatePresence initial={false}>
+                          {form.allergies === "oui" && (
+                            <motion.div
+                              key="allergy-details"
+                              initial={{ height: 0, opacity: 0 }}
+                              animate={{ height: "auto", opacity: 1 }}
+                              exit={{ height: 0, opacity: 0 }}
+                              transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
+                              className="overflow-hidden"
+                            >
+                              <label htmlFor="allergyDetails" className="block pt-1">
+                                <span className="mb-2 block font-sans text-[11px] uppercase tracking-wide2 text-gold">
+                                  Précisez vos allergies
+                                </span>
+                                <textarea
+                                  id="allergyDetails"
+                                  required
+                                  rows={2}
+                                  value={form.allergyDetails}
+                                  onChange={(e) => set("allergyDetails")(e.target.value)}
+                                  placeholder="Fruits à coque, gluten, lactose…"
+                                  className="w-full resize-none border-b border-fg/25 bg-transparent px-1 py-3 font-sans text-fg placeholder:text-fg/30 outline-none transition-colors duration-300 focus:border-gold"
+                                />
+                              </label>
+                            </motion.div>
+                          )}
+                        </AnimatePresence>
                       </div>
 
                       <button type="submit" className="btn-luxe w-full">

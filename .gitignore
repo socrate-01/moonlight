@@ -9,3 +9,7 @@ npm-debug.log*
 .env*.local
 .vercel
 *.tsbuildinfo
+
+# Heavy source images (optimised copies live in public/images)
+/imagesGallery
+/imagesDress

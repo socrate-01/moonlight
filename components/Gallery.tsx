@@ -1,8 +1,20 @@
 import Reveal from "./Reveal";
-import GalleryTile from "./GalleryTile";
-import { IMAGES } from "./images";
+import NeonTile from "./NeonTile";
+import { GALLERY } from "./images";
+
+type Item = { src: string; w: number; h: number };
+
+// Distribute images round-robin into n vertical tracks (keeps left-to-right order).
+function toColumns(items: Item[], n: number): (Item & { i: number })[][] {
+  const cols: (Item & { i: number })[][] = Array.from({ length: n }, () => []);
+  items.forEach((it, i) => cols[i % n].push({ ...it, i }));
+  return cols;
+}
 
 export default function Gallery() {
+  const desktop = toColumns(GALLERY, 4);
+  const mobile = toColumns(GALLERY, 2);
+
   return (
     <section id="gallery" className="relative overflow-hidden bg-bg py-28 lg:py-40">
       <div className="relative mx-auto max-w-6xl px-6 lg:px-10">
@@ -13,31 +25,41 @@ export default function Gallery() {
           </div>
           <Reveal>
             <h2 className="text-center font-display text-4xl font-light text-fg sm:text-5xl md:text-6xl">
-              L'ambiance d'une soirée
+              Nos cocktails signature
             </h2>
           </Reveal>
         </div>
 
-        {/* Editorial, offset composition — the centre image peaks as the focal point */}
-        <div className="grid grid-cols-1 gap-6 sm:grid-cols-12 sm:items-start lg:gap-8">
-          <GalleryTile
-            src={IMAGES.galleryTerrasse}
-            index={0}
-            ratio="aspect-[3/4]"
-            className="sm:col-span-4 sm:col-start-1 sm:mt-20 lg:mt-28"
-          />
-          <GalleryTile
-            src={IMAGES.gallerySignature}
-            index={1}
-            ratio="aspect-[2/3]"
-            className="sm:col-span-4 sm:col-start-5 sm:-mt-2"
-          />
-          <GalleryTile
-            src={IMAGES.galleryHauteur}
-            index={2}
-            ratio="aspect-[3/4]"
-            className="sm:col-span-4 sm:col-start-9 sm:mt-10 lg:mt-14"
-          />
+        {/* Desktop — 4 offset tracks for a charming, rhythmic wall */}
+        <div className="hidden gap-6 md:flex">
+          {desktop.map((col, ci) => (
+            <div
+              key={ci}
+              className={`flex flex-1 flex-col gap-6 ${
+                ci % 2 === 1 ? "mt-16" : ""
+              }`}
+            >
+              {col.map((img) => (
+                <NeonTile key={img.src} src={img.src} index={img.i} />
+              ))}
+            </div>
+          ))}
+        </div>
+
+        {/* Mobile / tablet — 2 offset tracks */}
+        <div className="flex gap-4 md:hidden">
+          {mobile.map((col, ci) => (
+            <div
+              key={ci}
+              className={`flex flex-1 flex-col gap-4 ${
+                ci % 2 === 1 ? "mt-10" : ""
+              }`}
+            >
+              {col.map((img) => (
+                <NeonTile key={img.src} src={img.src} index={img.i} />
+              ))}
+            </div>
+          ))}
         </div>
       </div>
     </section>
