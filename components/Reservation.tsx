@@ -3,8 +3,10 @@
 import Image from "next/image";
 import { useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
+import QRCode from "qrcode";
 import Reveal from "./Reveal";
 import FauxQR from "./FauxQR";
+import { createReservation } from "@/lib/reservations";
 
 type FormState = {
   name: string;
@@ -101,20 +103,197 @@ function Field({
 export default function Reservation() {
   const [form, setForm] = useState<FormState>(empty);
   const [submitted, setSubmitted] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [ref, setRef] = useState("");
+  const [qrUrl, setQrUrl] = useState("");
 
   const set = (k: keyof FormState) => (v: string) =>
     setForm((f) => ({ ...f, [k]: v }));
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // UI-only for now — email + QR + PDF generation to be wired later.
-    setSubmitted(true);
+    if (loading) return;
+    setError("");
+    setLoading(true);
+    try {
+      const { id, ref: newRef } = await createReservation({
+        name: form.name.trim(),
+        email: form.email.trim(),
+        phone: form.phone.trim(),
+        alcohol: form.alcohol,
+        allergies: form.allergies,
+        allergyDetails: form.allergies === "oui" ? form.allergyDetails.trim() : "",
+      });
+      setRef(newRef);
+
+      // QR encodes the reservation id (scanner looks up live data). Generated
+      // client-side so the ticket works without any email service.
+      try {
+        const url = await QRCode.toDataURL(id, {
+          errorCorrectionLevel: "M",
+          margin: 1,
+          scale: 8,
+          color: { dark: "#131732", light: "#f5f2ea" },
+        });
+        setQrUrl(url);
+        // Trigger the ticket download straight away.
+        await downloadTicket(url, newRef, form.name.trim());
+      } catch {
+        /* the reservation is already saved even if QR fails */
+      }
+
+      setSubmitted(true);
+    } catch (err) {
+      console.error(err);
+      setError(
+        "Une erreur est survenue lors de l'enregistrement. Veuillez réessayer."
+      );
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const ref =
-    "ML-" +
-    (form.name || "invite").toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 6).padEnd(6, "X") +
-    "-2026";
+  const loadImage = (src: string) =>
+    new Promise<HTMLImageElement>((resolve, reject) => {
+      const img = new window.Image();
+      img.crossOrigin = "anonymous";
+      img.onload = () => resolve(img);
+      img.onerror = reject;
+      img.src = src;
+    });
+
+  const downloadTicket = async (
+    qrSrc: string = qrUrl,
+    refValue: string = ref,
+    name: string = form.name
+  ) => {
+    if (!qrSrc) return;
+    const scale = 2;
+    const W = 900;
+    const H = 1340;
+    const canvas = document.createElement("canvas");
+    canvas.width = W * scale;
+    canvas.height = H * scale;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+    ctx.scale(scale, scale);
+
+    // background
+    const g = ctx.createLinearGradient(0, 0, 0, H);
+    g.addColorStop(0, "#0b0e26");
+    g.addColorStop(1, "#14173a");
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, W, H);
+
+    // gold frame
+    ctx.strokeStyle = "rgba(201,162,94,0.55)";
+    ctx.lineWidth = 2;
+    ctx.strokeRect(30, 30, W - 60, H - 60);
+
+    const center = (
+      t: string,
+      y: number,
+      font: string,
+      color: string,
+      ls = 0
+    ) => {
+      ctx.font = font;
+      ctx.fillStyle = color;
+      ctx.textAlign = "center";
+      try {
+        (ctx as CanvasRenderingContext2D & { letterSpacing: string }).letterSpacing =
+          `${ls}px`;
+      } catch {}
+      ctx.fillText(t, W / 2, y);
+    };
+
+    try {
+      const [logo, qr] = await Promise.all([
+        loadImage("/images/logo-icon-orange.png"),
+        loadImage(qrSrc),
+      ]);
+
+      const lw = 92;
+      const lh = (logo.height / logo.width) * lw;
+      ctx.drawImage(logo, (W - lw) / 2, 78, lw, lh);
+
+      let y = 78 + lh + 46;
+      center("CÉRÉMONIE D'OUVERTURE OFFICIELLE", y, "600 13px Arial", "#c9a25e", 3);
+      y += 62;
+      center("MOONLIGHT", y, "400 60px Georgia", "#f2efe6", 6);
+      y += 34;
+      center("COCKTAIL BAR", y, "400 14px Arial", "#c9a25e", 6);
+
+      // QR
+      const q = 300;
+      const qx = (W - q) / 2;
+      const qy = y + 46;
+      ctx.fillStyle = "#f5f2ea";
+      const r = 16;
+      const bx = qx - 16;
+      const by = qy - 16;
+      const bs = q + 32;
+      ctx.beginPath();
+      ctx.moveTo(bx + r, by);
+      ctx.arcTo(bx + bs, by, bx + bs, by + bs, r);
+      ctx.arcTo(bx + bs, by + bs, bx, by + bs, r);
+      ctx.arcTo(bx, by + bs, bx, by, r);
+      ctx.arcTo(bx, by, bx + bs, by, r);
+      ctx.closePath();
+      ctx.fill();
+      ctx.drawImage(qr, qx, qy, q, q);
+
+      y = qy + q + 52;
+      center(refValue, y, "400 17px Arial", "#c9a25e", 3);
+
+      // divider
+      y += 34;
+      ctx.strokeStyle = "rgba(255,255,255,0.14)";
+      ctx.beginPath();
+      ctx.moveTo(W / 2 - 120, y);
+      ctx.lineTo(W / 2 + 120, y);
+      ctx.stroke();
+
+      y += 58;
+      center(name || "Invité", y, "italic 42px Georgia", "#f2efe6", 0);
+      y += 46;
+      center("SAMEDI XX MOIS 2026 · 20 H 00", y, "400 14px Arial", "rgba(242,239,230,0.85)", 2);
+      y += 26;
+      center("[ ADRESSE DU LIEU ]", y, "400 13px Arial", "rgba(183,178,199,0.9)", 1);
+
+      center(
+        "Présentez ce billet à l'entrée",
+        H - 70,
+        "italic 16px Georgia",
+        "rgba(183,178,199,0.9)",
+        0
+      );
+
+      canvas.toBlob((blob) => {
+        if (!blob) return;
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `billet-moonlight-${refValue || "invitation"}.png`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        URL.revokeObjectURL(url);
+      }, "image/png");
+    } catch (err) {
+      console.error("ticket download failed", err);
+    }
+  };
+
+  const isValid = Boolean(
+    form.name.trim() &&
+      form.email.trim() &&
+      form.phone.trim() &&
+      form.alcohol &&
+      form.allergies &&
+      (form.allergies !== "oui" || form.allergyDetails.trim())
+  );
 
   return (
     <section id="reservation" className="relative overflow-hidden bg-surface py-28 lg:py-40">
@@ -140,16 +319,16 @@ export default function Reservation() {
             </Reveal>
             <Reveal delay={0.12}>
               <p className="max-w-md font-sans text-[15px] font-light leading-[1.9] text-muted">
-                Réservez votre place pour la cérémonie d'ouverture. Vous recevrez par
-                email votre invitation nominative accompagnée d'un QR code personnel, à
-                présenter à l'entrée le soir de l'événement.
+                Réservez votre place pour la cérémonie d'ouverture. Vous obtiendrez
+                aussitôt votre billet nominatif avec un QR code personnel, à
+                télécharger et à présenter à l'entrée le soir de l'événement.
               </p>
             </Reveal>
             <Reveal delay={0.18}>
               <ul className="mt-10 space-y-6">
                 {[
                   ["01", "Complétez le formulaire"],
-                  ["02", "Recevez invitation & QR code par email"],
+                  ["02", "Téléchargez votre billet (QR code)"],
                   ["03", "Présentez votre QR code à l'entrée"],
                 ].map(([n, t]) => (
                   <li key={n} className="flex items-center gap-4">
@@ -232,9 +411,19 @@ export default function Reservation() {
                         </AnimatePresence>
                       </div>
 
-                      <button type="submit" className="btn-luxe w-full">
-                        Recevoir mon invitation par mail
+                      <button
+                        type="submit"
+                        disabled={loading || !isValid}
+                        className="btn-luxe w-full disabled:cursor-not-allowed disabled:opacity-50"
+                      >
+                        {loading ? "Préparation du billet…" : "Télécharger mon billet"}
                       </button>
+
+                      {error && (
+                        <p className="text-center font-sans text-[12px] font-light text-terracotta">
+                          {error}
+                        </p>
+                      )}
 
                       <p className="text-center font-sans text-[11px] font-light leading-relaxed text-muted">
                         Vos informations restent confidentielles et ne servent qu'à
@@ -269,7 +458,16 @@ export default function Reservation() {
 
                           <div className="flex items-center gap-4 px-5 py-6 sm:gap-5 sm:px-6">
                             <div className="shrink-0 rounded-md border border-fg/15 bg-[#f5f2ea] p-2">
-                              <FauxQR seed={ref} className="h-20 w-20 text-night sm:h-24 sm:w-24" />
+                              {qrUrl ? (
+                                // eslint-disable-next-line @next/next/no-img-element
+                                <img
+                                  src={qrUrl}
+                                  alt="QR code invitation"
+                                  className="h-20 w-20 sm:h-24 sm:w-24"
+                                />
+                              ) : (
+                                <FauxQR seed={ref} className="h-20 w-20 text-night sm:h-24 sm:w-24" />
+                              )}
                             </div>
                             <dl className="min-w-0 space-y-2.5 text-left">
                               <div>
@@ -294,13 +492,27 @@ export default function Reservation() {
                         </div>
                       </div>
 
-                      <p className="mt-6 text-center font-sans text-[12px] font-light leading-relaxed text-muted">
-                        Un aperçu de votre invitation. La version définitive, avec votre
-                        QR code personnel, vous sera envoyée par email.
+                      <button
+                        onClick={() => downloadTicket()}
+                        disabled={!qrUrl}
+                        className="btn-luxe mt-7 w-full disabled:opacity-60"
+                      >
+                        Télécharger à nouveau mon billet
+                      </button>
+
+                      <p className="mt-5 text-center font-sans text-[12px] font-light leading-relaxed text-muted">
+                        Votre billet a été téléchargé. Conservez-le et présentez le QR
+                        code à l'entrée le soir de l'événement.
                       </p>
 
                       <button
-                        onClick={() => { setSubmitted(false); setForm(empty); }}
+                        onClick={() => {
+                          setSubmitted(false);
+                          setForm(empty);
+                          setRef("");
+                          setQrUrl("");
+                          setError("");
+                        }}
                         className="mx-auto mt-6 block font-sans text-[11px] uppercase tracking-wide2 text-gold underline-offset-4 transition hover:underline"
                       >
                         Nouvelle réservation

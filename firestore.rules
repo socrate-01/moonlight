@@ -1,0 +1,21 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    match /reservations/{id} {
+      // Anyone can create a reservation from the public form (validated).
+      allow create: if isValidReservation();
+
+      // Only authenticated admins can read, update (check-in) or delete.
+      allow read, update, delete: if request.auth != null;
+    }
+
+    function isValidReservation() {
+      let d = request.resource.data;
+      return d.name is string && d.name.size() > 0 && d.name.size() < 200
+        && d.email is string && d.email.size() < 320
+        && d.present == false;
+    }
+  }
+}
