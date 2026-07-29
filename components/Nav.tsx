@@ -8,6 +8,7 @@ const links = [
   { href: "#about", label: "La Maison" },
   { href: "#theme", label: "Dress code" },
   { href: "#gallery", label: "Galerie" },
+  { href: "#programme", label: "Programme" },
 ];
 
 export default function Nav() {

@@ -58,8 +58,8 @@ function invitationHtml(p: Payload, qrDataUrl: string) {
         </table>
       </div>
       <div style="padding:16px 32px 32px;text-align:center;border-top:1px dashed rgba(255,255,255,.12);margin-top:10px;">
-        <div style="color:#f2efe6;font-size:12px;letter-spacing:2px;text-transform:uppercase;font-family:Arial,sans-serif;">Samedi XX Mois 2026 · 20 h 00</div>
-        <div style="color:#b7b2c7;font-size:12px;font-family:Arial,sans-serif;margin-top:4px;">[ Adresse du lieu ]</div>
+        <div style="color:#f2efe6;font-size:12px;letter-spacing:2px;text-transform:uppercase;font-family:Arial,sans-serif;">Samedi 8 Août 2026 · 18 h 00</div>
+        <div style="color:#b7b2c7;font-size:12px;font-family:Arial,sans-serif;margin-top:4px;">7300 Rue Saint-Jacques</div>
       </div>
     </div>
   </div>`;

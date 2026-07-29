@@ -18,8 +18,8 @@ export default function Footer() {
         <div className="mx-auto h-px w-40 bg-gradient-to-r from-transparent via-gold/50 to-transparent" />
 
         <div className="flex flex-wrap items-center justify-center gap-x-10 gap-y-3 font-sans text-[12px] uppercase tracking-wide2 text-[#f1efe6]/70">
-          <span>Samedi XX Mois 2026 · 20 h 00</span>
-          <span>[ Adresse du lieu ]</span>
+          <span>Samedi 8 Août 2026 · 18 h 00</span>
+          <span>7300 Rue Saint-Jacques</span>
           <a href="mailto:contact@moonlight.bar" className="transition hover:text-gold">
             contact@moonlight.bar
           </a>

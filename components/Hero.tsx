@@ -158,11 +158,11 @@ export default function Hero() {
             premières lueurs d'un lieu pas comme les autres.
           </p>
           <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 font-sans text-[12px] uppercase tracking-wide2 text-[#f6f3ea]/80">
-            <span>Samedi XX Mois 2026</span>
+            <span>Samedi 8 Août 2026</span>
             <CocktailIcon className="h-4 w-4 text-[#e6cf97]" />
-            <span>20 h 00</span>
+            <span>18 h 00</span>
             <CocktailIcon className="h-4 w-4 text-[#e6cf97]" />
-            <span>[ Adresse du lieu ]</span>
+            <span>7300 Rue Saint-Jacques</span>
           </div>
         </motion.div>
 

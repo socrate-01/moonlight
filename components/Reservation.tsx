@@ -258,9 +258,9 @@ export default function Reservation() {
       y += 58;
       center(name || "Invité", y, "italic 42px Georgia", "#f2efe6", 0);
       y += 46;
-      center("SAMEDI XX MOIS 2026 · 20 H 00", y, "400 14px Arial", "rgba(242,239,230,0.85)", 2);
+      center("SAMEDI 8 AOÛT 2026 · 18 H 00", y, "400 14px Arial", "rgba(242,239,230,0.85)", 2);
       y += 26;
-      center("[ ADRESSE DU LIEU ]", y, "400 13px Arial", "rgba(183,178,199,0.9)", 1);
+      center("7300 RUE SAINT-JACQUES", y, "400 13px Arial", "rgba(183,178,199,0.9)", 1);
 
       center(
         "Présentez ce billet à l'entrée",
@@ -301,7 +301,7 @@ export default function Reservation() {
 
       <div className="relative mx-auto max-w-7xl px-6 lg:px-10">
         <div className="mb-16 flex items-baseline justify-center gap-4">
-          <span className="numeral">IV</span>
+          <span className="numeral">V</span>
           <span className="eyebrow-plain">Réservation · RSVP</span>
         </div>
 
@@ -486,8 +486,8 @@ export default function Reservation() {
                           </div>
 
                           <div className="flex items-center justify-between border-t border-dashed border-fg/20 px-6 py-4 font-sans text-[10px] uppercase tracking-wide2 text-muted">
-                            <span>Samedi XX Mois 2026</span>
-                            <span>20 h 00</span>
+                            <span>Samedi 8 Août 2026</span>
+                            <span>18 h 00</span>
                           </div>
                         </div>
                       </div>

@@ -10,7 +10,10 @@ export default function Preloader() {
   useEffect(() => {
     document.body.style.overflow = "hidden";
     const t = setTimeout(() => setOpen(true), 1700);
-    return () => clearTimeout(t);
+    return () => {
+      clearTimeout(t);
+      document.body.style.overflow = "";
+    };
   }, []);
 
   const restore = () => {
