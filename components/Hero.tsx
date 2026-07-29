@@ -70,14 +70,14 @@ export default function Hero() {
       className="relative flex min-h-screen items-center justify-center overflow-hidden"
     >
       {/* Banner image layer — day / night crossfade */}
-      <motion.div style={{ y: imgY }} className="absolute inset-0 scale-110">
+      <motion.div style={{ y: imgY }} className="absolute inset-0 scale-100 sm:scale-110">
         <Image
           src={IMAGES.heroDay}
           alt="Terrasse cocktail au coucher du soleil"
           fill
           priority
           sizes="100vw"
-          className="animate-kenburns object-cover object-center transition-opacity duration-1000 dark:opacity-0"
+          className="object-cover object-[46%_center] transition-opacity duration-1000 dark:opacity-0 sm:object-center sm:animate-kenburns"
         />
         <Image
           src={IMAGES.heroNight}
@@ -85,7 +85,7 @@ export default function Hero() {
           fill
           priority
           sizes="100vw"
-          className="animate-kenburns object-cover object-center opacity-0 transition-opacity duration-1000 dark:opacity-100"
+          className="object-cover object-center opacity-0 transition-opacity duration-1000 dark:opacity-100 sm:animate-kenburns"
         />
       </motion.div>
 
