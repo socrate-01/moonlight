@@ -1,8 +1,8 @@
 import {
-  addDoc,
   collection,
   doc,
   getDoc,
+  setDoc,
   serverTimestamp,
   updateDoc,
   Timestamp,
@@ -35,16 +35,18 @@ export function makeRef(id: string): string {
   return "ML-" + id.slice(0, 6).toUpperCase() + "-2026";
 }
 
-/** Create a reservation. Returns the new document id and its reference. */
+/** Create a reservation in a single write (public create is allowed by the
+ *  security rules; a second update would be rejected for anonymous users). */
 export async function createReservation(data: NewReservation) {
-  const docRef = await addDoc(collection(db, COLLECTION), {
+  const docRef = doc(collection(db, COLLECTION)); // generate an id, no write yet
+  const ref = makeRef(docRef.id);
+  await setDoc(docRef, {
     ...data,
+    ref,
     present: false,
     createdAt: serverTimestamp(),
     presentAt: null,
   });
-  const ref = makeRef(docRef.id);
-  await updateDoc(docRef, { ref });
   return { id: docRef.id, ref };
 }
 

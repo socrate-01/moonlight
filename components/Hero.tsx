@@ -166,12 +166,23 @@ export default function Hero() {
           </div>
         </motion.div>
 
-        <motion.div
+        <motion.p
           variants={fade}
           custom={5}
           initial="hidden"
           animate="show"
-          className="mt-11 flex flex-col items-center gap-4 sm:flex-row"
+          className="mt-9 max-w-md rounded-full border border-[#e6cf97]/40 bg-black/20 px-6 py-2.5 text-center font-sans text-[11px] uppercase tracking-wide2 text-[#f6f3ea] backdrop-blur-sm"
+        >
+          Merci d'arriver avant 18 h 30 · au-delà, les entrées ne seront plus
+          autorisées
+        </motion.p>
+
+        <motion.div
+          variants={fade}
+          custom={6}
+          initial="hidden"
+          animate="show"
+          className="mt-6 flex flex-col items-center gap-4 sm:flex-row"
         >
           <a href="#reservation" className="btn-luxe">
             Réserver ma place
