@@ -1,5 +1,6 @@
 import {
   collection,
+  deleteDoc,
   doc,
   getDoc,
   setDoc,
@@ -61,6 +62,10 @@ export async function setPresent(id: string, present: boolean) {
     present,
     presentAt: present ? serverTimestamp() : null,
   });
+}
+
+export async function deleteReservation(id: string) {
+  await deleteDoc(doc(db, COLLECTION, id));
 }
 
 export const RESERVATIONS_COLLECTION = COLLECTION;

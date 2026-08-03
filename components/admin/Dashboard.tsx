@@ -5,7 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import { collection, onSnapshot, orderBy, query } from "firebase/firestore";
 import { signOut } from "firebase/auth";
 import { auth, db } from "@/lib/firebase";
-import { setPresent, type Reservation } from "@/lib/reservations";
+import { deleteReservation, setPresent, type Reservation } from "@/lib/reservations";
 
 function fmt(ts?: { toDate: () => Date } | null) {
   if (!ts) return "";
@@ -25,6 +25,8 @@ export default function Dashboard() {
   const [items, setItems] = useState<Reservation[]>([]);
   const [tab, setTab] = useState<"all" | "present">("all");
   const [q, setQ] = useState("");
+  const [alcoholOnly, setAlcoholOnly] = useState(false);
+  const [allergyOnly, setAllergyOnly] = useState(false);
   const [busy, setBusy] = useState<string | null>(null);
 
   useEffect(() => {
@@ -35,22 +37,47 @@ export default function Dashboard() {
   }, []);
 
   const presentCount = useMemo(() => items.filter((i) => i.present).length, [items]);
+  const alcoholCount = useMemo(
+    () => items.filter((i) => i.alcohol === "oui").length,
+    [items]
+  );
+  const allergyCount = useMemo(
+    () => items.filter((i) => i.allergies === "oui").length,
+    [items]
+  );
 
   const filtered = useMemo(() => {
     const term = q.trim().toLowerCase();
     return items
       .filter((i) => (tab === "present" ? i.present : true))
+      .filter((i) => (alcoholOnly ? i.alcohol === "oui" : true))
+      .filter((i) => (allergyOnly ? i.allergies === "oui" : true))
       .filter((i) =>
         !term
           ? true
           : `${i.name} ${i.email} ${i.phone} ${i.ref}`.toLowerCase().includes(term)
       );
-  }, [items, tab, q]);
+  }, [items, tab, q, alcoholOnly, allergyOnly]);
 
   const toggle = async (r: Reservation) => {
     setBusy(r.id);
     try {
       await setPresent(r.id, !r.present);
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const remove = async (r: Reservation) => {
+    if (
+      !window.confirm(
+        `Supprimer définitivement la réservation de ${r.name} ? Cette action est irréversible.`
+      )
+    )
+      return;
+    setBusy(r.id);
+    try {
+      await deleteReservation(r.id);
     } finally {
       setBusy(null);
     }
@@ -111,6 +138,44 @@ export default function Dashboard() {
           />
         </div>
 
+        {/* filters */}
+        <div className="mb-8 flex flex-wrap items-center gap-3">
+          <span className="font-sans text-[10px] uppercase tracking-luxe text-muted">
+            Filtres
+          </span>
+          <button
+            onClick={() => setAlcoholOnly((v) => !v)}
+            className={`rounded-full px-4 py-1.5 font-sans text-[11px] uppercase tracking-wide2 transition ${
+              alcoholOnly
+                ? "bg-gold text-night"
+                : "border border-fg/25 text-fg hover:border-gold"
+            }`}
+          >
+            Alcool · {alcoholCount}
+          </button>
+          <button
+            onClick={() => setAllergyOnly((v) => !v)}
+            className={`rounded-full px-4 py-1.5 font-sans text-[11px] uppercase tracking-wide2 transition ${
+              allergyOnly
+                ? "bg-terracotta text-white"
+                : "border border-fg/25 text-fg hover:border-terracotta"
+            }`}
+          >
+            Allergies · {allergyCount}
+          </button>
+          {(alcoholOnly || allergyOnly) && (
+            <button
+              onClick={() => {
+                setAlcoholOnly(false);
+                setAllergyOnly(false);
+              }}
+              className="font-sans text-[11px] uppercase tracking-wide2 text-muted underline-offset-4 transition hover:text-fg hover:underline"
+            >
+              Réinitialiser
+            </button>
+          )}
+        </div>
+
         {/* list */}
         <div className="space-y-3">
           {filtered.length === 0 && (
@@ -155,21 +220,34 @@ export default function Dashboard() {
                 </div>
               </div>
 
-              <button
-                onClick={() => toggle(r)}
-                disabled={busy === r.id}
-                className={`shrink-0 rounded-full px-5 py-2.5 font-sans text-[11px] uppercase tracking-wide2 transition disabled:opacity-60 ${
-                  r.present
-                    ? "border border-fg/25 text-fg hover:bg-fg hover:text-bg"
-                    : "bg-gold text-night hover:brightness-110"
-                }`}
-              >
-                {busy === r.id
-                  ? "…"
-                  : r.present
-                  ? "Annuler"
-                  : "Marquer présent"}
-              </button>
+              <div className="flex shrink-0 items-center gap-2">
+                <button
+                  onClick={() => toggle(r)}
+                  disabled={busy === r.id}
+                  className={`rounded-full px-5 py-2.5 font-sans text-[11px] uppercase tracking-wide2 transition disabled:opacity-60 ${
+                    r.present
+                      ? "border border-fg/25 text-fg hover:bg-fg hover:text-bg"
+                      : "bg-gold text-night hover:brightness-110"
+                  }`}
+                >
+                  {busy === r.id
+                    ? "…"
+                    : r.present
+                    ? "Annuler"
+                    : "Marquer présent"}
+                </button>
+                <button
+                  onClick={() => remove(r)}
+                  disabled={busy === r.id}
+                  aria-label={`Supprimer ${r.name}`}
+                  title="Supprimer"
+                  className="flex h-10 w-10 items-center justify-center rounded-full border border-terracotta/40 text-terracotta transition hover:bg-terracotta hover:text-white disabled:opacity-60"
+                >
+                  <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14" />
+                  </svg>
+                </button>
+              </div>
             </div>
           ))}
         </div>
