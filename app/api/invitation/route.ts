@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import QRCode from "qrcode";
 import { Resend } from "resend";
+import { TICKETS_OPEN } from "@/lib/config";
 
 export const runtime = "nodejs";
 
@@ -67,6 +68,14 @@ function invitationHtml(p: Payload, qrDataUrl: string) {
 
 export async function POST(request: Request) {
   try {
+    // Billets clos : plus aucun QR ni invitation n'est délivré.
+    if (!TICKETS_OPEN) {
+      return NextResponse.json(
+        { error: "Les invitations sont closes." },
+        { status: 403 }
+      );
+    }
+
     const p = (await request.json()) as Payload;
     if (!p?.id || !p?.email) {
       return NextResponse.json({ error: "Missing id or email" }, { status: 400 });

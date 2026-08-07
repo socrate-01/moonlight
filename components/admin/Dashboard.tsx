@@ -21,6 +21,58 @@ function fmt(ts?: { toDate: () => Date } | null) {
   }
 }
 
+/** Date complète (avec année) pour l'export. */
+function fmtFull(ts?: { toDate: () => Date } | null) {
+  if (!ts) return "";
+  try {
+    return ts.toDate().toLocaleString("fr-FR");
+  } catch {
+    return "";
+  }
+}
+
+/** Échappe une valeur CSV. Le formulaire étant public, on neutralise aussi les
+ *  formules (=, +, -, @) qu'Excel exécuterait à l'ouverture. */
+function csvCell(value: unknown) {
+  let s = value == null ? "" : String(value);
+  if (/^[=+\-@\t\r]/.test(s)) s = "'" + s;
+  return `"${s.replace(/"/g, '""')}"`;
+}
+
+/** Export de la liste complète, séparateur « ; » et BOM UTF-8 pour qu'Excel
+ *  ouvre le fichier avec les accents intacts. */
+function toCsv(rows: Reservation[]) {
+  const headers = [
+    "Nom",
+    "Email",
+    "Téléphone",
+    "Référence",
+    "Alcool",
+    "Allergies",
+    "Détail allergies",
+    "Présent",
+    "Heure d'arrivée",
+    "Date d'inscription",
+  ];
+  const lines = rows.map((r) =>
+    [
+      r.name,
+      r.email,
+      r.phone,
+      r.ref,
+      r.alcohol === "oui" ? "Oui" : "Non",
+      r.allergies === "oui" ? "Oui" : "Non",
+      r.allergies === "oui" ? r.allergyDetails || "" : "",
+      r.present ? "Oui" : "Non",
+      fmtFull(r.presentAt),
+      fmtFull(r.createdAt),
+    ]
+      .map(csvCell)
+      .join(";")
+  );
+  return "﻿" + [headers.map(csvCell).join(";"), ...lines].join("\r\n");
+}
+
 export default function Dashboard() {
   const [items, setItems] = useState<Reservation[]>([]);
   const [tab, setTab] = useState<"all" | "present">("all");
@@ -68,6 +120,23 @@ export default function Dashboard() {
     }
   };
 
+  /** Télécharge la liste complète (toutes les réservations, sans tenir compte
+   *  des filtres affichés). */
+  const exportCsv = () => {
+    if (items.length === 0) return;
+    const blob = new Blob([toCsv(items)], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `moonlight-reservations-${new Date()
+      .toISOString()
+      .slice(0, 10)}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  };
+
   const remove = async (r: Reservation) => {
     if (
       !window.confirm(
@@ -95,6 +164,25 @@ export default function Dashboard() {
             </span>
           </div>
           <div className="flex items-center gap-3">
+            <button
+              onClick={exportCsv}
+              disabled={items.length === 0}
+              title="Télécharger la liste complète au format CSV"
+              className="flex items-center gap-2 rounded-full border border-fg/25 px-4 py-2 font-sans text-[11px] uppercase tracking-wide2 text-fg transition hover:bg-fg hover:text-bg disabled:opacity-40 disabled:hover:bg-transparent disabled:hover:text-fg"
+            >
+              <svg
+                viewBox="0 0 24 24"
+                className="h-3.5 w-3.5"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.8"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="M12 3v12m0 0 4-4m-4 4-4-4M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2" />
+              </svg>
+              Exporter · {items.length}
+            </button>
             <Link
               href="/admin/scan"
               className="rounded-full border border-gold/50 px-4 py-2 font-sans text-[11px] uppercase tracking-wide2 text-gold transition hover:bg-gold hover:text-night"

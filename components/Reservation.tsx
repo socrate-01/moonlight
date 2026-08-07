@@ -7,6 +7,7 @@ import QRCode from "qrcode";
 import Reveal from "./Reveal";
 import FauxQR from "./FauxQR";
 import { createReservation } from "@/lib/reservations";
+import { TICKETS_OPEN } from "@/lib/config";
 
 type FormState = {
   name: string;
@@ -127,20 +128,24 @@ export default function Reservation() {
       });
       setRef(newRef);
 
-      // QR encodes the reservation id (scanner looks up live data). Generated
-      // client-side so the ticket works without any email service.
-      try {
-        const url = await QRCode.toDataURL(id, {
-          errorCorrectionLevel: "M",
-          margin: 1,
-          scale: 8,
-          color: { dark: "#131732", light: "#f5f2ea" },
-        });
-        setQrUrl(url);
-        // Trigger the ticket download straight away.
-        await downloadTicket(url, newRef, form.name.trim());
-      } catch {
-        /* the reservation is already saved even if QR fails */
+      // Billets clos : la demande est enregistrée, mais aucun QR n'est généré
+      // et rien n'est téléchargeable.
+      if (TICKETS_OPEN) {
+        // QR encodes the reservation id (scanner looks up live data). Generated
+        // client-side so the ticket works without any email service.
+        try {
+          const url = await QRCode.toDataURL(id, {
+            errorCorrectionLevel: "M",
+            margin: 1,
+            scale: 8,
+            color: { dark: "#131732", light: "#f5f2ea" },
+          });
+          setQrUrl(url);
+          // Trigger the ticket download straight away.
+          await downloadTicket(url, newRef, form.name.trim());
+        } catch {
+          /* the reservation is already saved even if QR fails */
+        }
       }
 
       setSubmitted(true);
@@ -168,7 +173,7 @@ export default function Reservation() {
     refValue: string = ref,
     name: string = form.name
   ) => {
-    if (!qrSrc) return;
+    if (!TICKETS_OPEN || !qrSrc) return;
     const scale = 2;
     const W = 900;
     const H = 1340;
@@ -302,7 +307,9 @@ export default function Reservation() {
       <div className="relative mx-auto max-w-7xl px-6 lg:px-10">
         <div className="mb-16 flex items-baseline justify-center gap-4">
           <span className="numeral">V</span>
-          <span className="eyebrow-plain">Réservation · RSVP</span>
+          <span className="eyebrow-plain">
+            {TICKETS_OPEN ? "Réservation · RSVP" : "Réservation · Complet"}
+          </span>
         </div>
 
         <div className="grid gap-14 lg:grid-cols-[0.9fr_1.1fr] lg:gap-20">
@@ -310,8 +317,10 @@ export default function Reservation() {
           <div className="lg:pt-4">
             <Reveal>
               <h2 className="font-display text-4xl font-light leading-tight text-fg sm:text-5xl md:text-6xl">
-                Recevez votre
-                <span className="italic text-gradient"> invitation</span>
+                {TICKETS_OPEN ? "Recevez votre" : "Rejoignez la"}
+                <span className="italic text-gradient">
+                  {TICKETS_OPEN ? " invitation" : " liste d'attente"}
+                </span>
               </h2>
             </Reveal>
             <Reveal delay={0.08}>
@@ -319,18 +328,25 @@ export default function Reservation() {
             </Reveal>
             <Reveal delay={0.12}>
               <p className="max-w-md font-sans text-[15px] font-light leading-[1.9] text-muted">
-                Réservez votre place pour la cérémonie d'ouverture. Vous obtiendrez
-                aussitôt votre billet nominatif avec un QR code personnel, à
-                télécharger et à présenter à l'entrée le soir de l'événement.
+                {TICKETS_OPEN
+                  ? "Réservez votre place pour la cérémonie d'ouverture. Vous obtiendrez aussitôt votre billet nominatif avec un QR code personnel, à télécharger et à présenter à l'entrée le soir de l'événement."
+                  : "La liste des invités est complète : tous les billets de la cérémonie d'ouverture ont été attribués. Vous pouvez encore laisser vos coordonnées — aucun billet n'est délivré pour le moment, mais nous vous contacterons en cas de désistement."}
               </p>
             </Reveal>
             <Reveal delay={0.18}>
               <ul className="mt-10 space-y-6">
-                {[
-                  ["01", "Complétez le formulaire"],
-                  ["02", "Téléchargez votre billet (QR code)"],
-                  ["03", "Présentez votre QR code à l'entrée"],
-                ].map(([n, t]) => (
+                {(TICKETS_OPEN
+                  ? [
+                      ["01", "Complétez le formulaire"],
+                      ["02", "Téléchargez votre billet (QR code)"],
+                      ["03", "Présentez votre QR code à l'entrée"],
+                    ]
+                  : [
+                      ["01", "Complétez le formulaire"],
+                      ["02", "Vos coordonnées rejoignent la liste d'attente"],
+                      ["03", "Nous vous contactons en cas de place libérée"],
+                    ]
+                ).map(([n, t]) => (
                   <li key={n} className="flex items-center gap-4">
                     <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-gold/45 font-display text-sm text-gold shadow-[0_0_16px_-2px_rgba(201,162,94,0.45)]">
                       {n}
@@ -416,7 +432,13 @@ export default function Reservation() {
                         disabled={loading || !isValid}
                         className="btn-luxe w-full disabled:cursor-not-allowed disabled:opacity-50"
                       >
-                        {loading ? "Préparation du billet…" : "Télécharger mon billet"}
+                        {loading
+                          ? TICKETS_OPEN
+                            ? "Préparation du billet…"
+                            : "Enregistrement…"
+                          : TICKETS_OPEN
+                          ? "Télécharger mon billet"
+                          : "M'inscrire sur la liste d'attente"}
                       </button>
 
                       {error && (
@@ -442,9 +464,12 @@ export default function Reservation() {
                           <Image src="/images/logo-icon-ink.png" alt="Moonlight" fill className="object-contain dark:opacity-0" />
                           <Image src="/images/logo-icon-orange.png" alt="" fill className="object-contain opacity-0 dark:opacity-100" />
                         </span>
-                        <p className="eyebrow-plain text-[10px]">Invitation confirmée</p>
+                        <p className="eyebrow-plain text-[10px]">
+                          {TICKETS_OPEN ? "Invitation confirmée" : "Demande enregistrée"}
+                        </p>
                         <h3 className="mt-2 font-display text-3xl text-fg">
-                          À très bientôt, {form.name.split(" ")[0] || "cher invité"}
+                          {TICKETS_OPEN ? "À très bientôt, " : "Merci, "}
+                          {form.name.split(" ")[0] || "cher invité"}
                         </h3>
                       </div>
 
@@ -457,18 +482,20 @@ export default function Reservation() {
                           </div>
 
                           <div className="flex items-center gap-4 px-5 py-6 sm:gap-5 sm:px-6">
-                            <div className="shrink-0 rounded-md border border-fg/15 bg-[#f5f2ea] p-2">
-                              {qrUrl ? (
-                                // eslint-disable-next-line @next/next/no-img-element
-                                <img
-                                  src={qrUrl}
-                                  alt="QR code invitation"
-                                  className="h-20 w-20 sm:h-24 sm:w-24"
-                                />
-                              ) : (
-                                <FauxQR seed={ref} className="h-20 w-20 text-night sm:h-24 sm:w-24" />
-                              )}
-                            </div>
+                            {TICKETS_OPEN && (
+                              <div className="shrink-0 rounded-md border border-fg/15 bg-[#f5f2ea] p-2">
+                                {qrUrl ? (
+                                  // eslint-disable-next-line @next/next/no-img-element
+                                  <img
+                                    src={qrUrl}
+                                    alt="QR code invitation"
+                                    className="h-20 w-20 sm:h-24 sm:w-24"
+                                  />
+                                ) : (
+                                  <FauxQR seed={ref} className="h-20 w-20 text-night sm:h-24 sm:w-24" />
+                                )}
+                              </div>
+                            )}
                             <dl className="min-w-0 space-y-2.5 text-left">
                               <div>
                                 <dt className="font-sans text-[9px] uppercase tracking-wide2 text-gold">Invité</dt>
@@ -492,17 +519,20 @@ export default function Reservation() {
                         </div>
                       </div>
 
-                      <button
-                        onClick={() => downloadTicket()}
-                        disabled={!qrUrl}
-                        className="btn-luxe mt-7 w-full disabled:opacity-60"
-                      >
-                        Télécharger à nouveau mon billet
-                      </button>
+                      {TICKETS_OPEN && (
+                        <button
+                          onClick={() => downloadTicket()}
+                          disabled={!qrUrl}
+                          className="btn-luxe mt-7 w-full disabled:opacity-60"
+                        >
+                          Télécharger à nouveau mon billet
+                        </button>
+                      )}
 
                       <p className="mt-5 text-center font-sans text-[12px] font-light leading-relaxed text-muted">
-                        Votre billet a été téléchargé. Conservez-le et présentez le QR
-                        code à l'entrée le soir de l'événement.
+                        {TICKETS_OPEN
+                          ? "Votre billet a été téléchargé. Conservez-le et présentez le QR code à l'entrée le soir de l'événement."
+                          : "La liste des invités étant complète, aucun billet n'est délivré pour le moment. Vos coordonnées sont enregistrées et nous vous contacterons directement si une place se libère."}
                       </p>
 
                       <button
