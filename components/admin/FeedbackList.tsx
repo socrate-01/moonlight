@@ -299,13 +299,25 @@ export default function FeedbackList() {
                     })}
                   </div>
 
-                  <div className="mt-6 border-t border-fg/10 pt-5">
-                    <span className="font-sans text-[9px] uppercase tracking-[0.24em] text-gold">
-                      Reviendrait
+                  <div className="mt-6 flex flex-wrap items-baseline gap-x-8 gap-y-3 border-t border-fg/10 pt-5">
+                    <span>
+                      <span className="font-sans text-[9px] uppercase tracking-[0.24em] text-gold">
+                        Reviendrait
+                      </span>
+                      <span className="ml-3 font-sans text-[13px] font-light text-fg">
+                        {ret ? `${ret.emoji} ${ret.label}` : "—"}
+                      </span>
                     </span>
-                    <span className="ml-3 font-sans text-[13px] font-light text-fg">
-                      {ret ? `${ret.emoji} ${ret.label}` : "—"}
-                    </span>
+                    {f.favouriteGift && (
+                      <span>
+                        <span className="font-sans text-[9px] uppercase tracking-[0.24em] text-gold">
+                          Cadeau préféré
+                        </span>
+                        <span className="ml-3 font-sans text-[13px] font-light text-fg">
+                          {f.favouriteGift}
+                        </span>
+                      </span>
+                    )}
                   </div>
 
                   {(f.comment || f.suggestions) && (

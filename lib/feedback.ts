@@ -19,6 +19,7 @@ export const RATING_QUESTIONS = [
   { key: "cocktails", label: "Les cocktails" },
   { key: "evening", label: "Le déroulé de la soirée" },
   { key: "ambiance", label: "L'ambiance" },
+  { key: "gifts", label: "Les cadeaux" },
 ] as const;
 
 export type RatingKey = (typeof RATING_QUESTIONS)[number]["key"];
@@ -57,6 +58,9 @@ export type Feedback = {
   returning: ReturnAnswer;
   comment: string;
   suggestions: string;
+  /** Cadeau préféré, saisi librement. Vide si la personne n'a rien indiqué,
+   *  et absent des avis déposés avant l'ajout de la question. */
+  favouriteGift: string;
   createdAt?: Timestamp | null;
 };
 

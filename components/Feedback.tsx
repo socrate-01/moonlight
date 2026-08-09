@@ -122,6 +122,7 @@ export default function Feedback() {
   const [returning, setReturning] = useState<ReturnAnswer | "">("");
   const [comment, setComment] = useState("");
   const [suggestions, setSuggestions] = useState("");
+  const [favouriteGift, setFavouriteGift] = useState("");
 
   const answered = useMemo(
     () =>
@@ -170,6 +171,7 @@ export default function Feedback() {
         returning: returning as ReturnAnswer,
         comment: comment.trim(),
         suggestions: suggestions.trim(),
+        favouriteGift: favouriteGift.trim(),
       });
       setStep("done");
     } catch (err) {
@@ -424,6 +426,28 @@ export default function Feedback() {
                           onChange={(v) => setRatings((r) => ({ ...r, [q.key]: v }))}
                         />
                       </fieldset>
+
+                      {/* Question de relance, rattachée à la notation des
+                          cadeaux plutôt qu'isolée en bas de page. */}
+                      {q.key === "gifts" && (
+                        <label
+                          htmlFor="favouriteGift"
+                          className="mt-6 block border-t border-fg/10 pt-5"
+                        >
+                          <span className="mb-2 block font-sans text-[10px] uppercase tracking-[0.28em] text-gold">
+                            Lequel avez-vous préféré ?
+                          </span>
+                          <input
+                            id="favouriteGift"
+                            type="text"
+                            maxLength={140}
+                            value={favouriteGift}
+                            onChange={(e) => setFavouriteGift(e.target.value)}
+                            placeholder="Le cadeau qui vous a le plus plu…"
+                            className="field-luxe"
+                          />
+                        </label>
+                      )}
                     </motion.div>
                   ))}
 
@@ -431,13 +455,13 @@ export default function Feedback() {
                     initial={{ opacity: 0, y: 16 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.45, duration: 0.55, ease }}
-                    style={edgeDelay(-5.7)}
+                    style={edgeDelay(-3.35)}
                     className="glass-card neon-travel p-6 sm:p-7"
                   >
                     <fieldset>
                     <legend className="mb-5 flex items-center gap-3 px-1">
                       <span className="font-sans text-[10px] tabular-nums text-gold/60">
-                        07
+                        {String(RATING_QUESTIONS.length + 1).padStart(2, "0")}
                       </span>
                       <span className="font-sans text-[13px] font-light tracking-wide text-fg">
                         Reviendriez-vous à un prochain événement ?

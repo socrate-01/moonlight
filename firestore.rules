@@ -45,13 +45,15 @@ service cloud.firestore {
       return d.email is string && d.email.size() > 0 && d.email.size() < 320
         && d.comment is string && d.comment.size() <= 2000
         && d.suggestions is string && d.suggestions.size() <= 2000
+        && d.favouriteGift is string && d.favouriteGift.size() <= 140
         && d.returning in ['oui', 'peut-etre', 'non']
         && isValidRating(r.event)
         && isValidRating(r.theme)
         && isValidRating(r.dressCode)
         && isValidRating(r.cocktails)
         && isValidRating(r.evening)
-        && isValidRating(r.ambiance);
+        && isValidRating(r.ambiance)
+        && isValidRating(r.gifts);
     }
 
     function isValidReservation() {
