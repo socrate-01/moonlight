@@ -205,6 +205,383 @@ section {
   font-weight: 500;
 }
 
+/* =====================================================================
+   Prestige — pages d'avis (public + admin)
+   Duo de polices dédié, aucun italique, effets néon et survols animés.
+   -----------------------------------------------------------------
+   Le bloc est dans @layer components pour que les utilitaires Tailwind
+   posés dans le JSX (px-1, flex-row, sm:*) puissent surcharger ces
+   règles — hors layer, elles gagneraient par simple ordre de source.
+   ===================================================================== */
+@layer components {
+.theme-prestige {
+  --font-display: var(--font-display-prestige);
+  --font-sans: var(--font-sans-prestige);
+}
+.theme-prestige em,
+.theme-prestige i,
+.theme-prestige blockquote {
+  font-style: normal;
+}
+
+/* Halos colorés dérivant en fond de page */
+.aurora {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+.aurora span {
+  position: absolute;
+  border-radius: 9999px;
+  filter: blur(130px);
+  opacity: 0.5;
+}
+/* Les trois taches parcourent réellement l'écran, sur des trajets et des
+   durées différents (37 / 46 / 29 s) et volontairement non multiples les uns
+   des autres : la composition ne se répète jamais à l'identique. Les décalages
+   négatifs évitent qu'elles partent toutes du même coin au chargement.
+   Uniquement des transformations — jamais de top/left animés. */
+.aurora span:nth-child(1) {
+  width: 46vw;
+  height: 46vw;
+  top: -14vw;
+  left: -10vw;
+  background: #4b2e8c;
+  animation: auroraA 37s ease-in-out infinite;
+}
+.aurora span:nth-child(2) {
+  width: 38vw;
+  height: 38vw;
+  bottom: -12vw;
+  right: -8vw;
+  background: #e0632a;
+  animation: auroraB 46s ease-in-out infinite;
+  animation-delay: -12s;
+}
+.aurora span:nth-child(3) {
+  width: 30vw;
+  height: 30vw;
+  top: 38%;
+  left: 52%;
+  background: #c9a25e;
+  opacity: 0.28;
+  animation: auroraC 29s ease-in-out infinite;
+  animation-delay: -7s;
+}
+
+/* Carte vitrée : dégradé de matière, arête lumineuse en haut, ombre profonde */
+.glass-card {
+  @apply relative rounded-3xl;
+  border: 1px solid rgb(var(--gold) / 0.16);
+  /* Même principe que .liquid-glass : des teintes, jamais de blanc. */
+  background: radial-gradient(
+      110% 78% at 12% -6%,
+      rgba(124, 74, 196, 0.3),
+      transparent 60%
+    ),
+    radial-gradient(
+      88% 62% at 108% 108%,
+      rgba(224, 99, 42, 0.2),
+      transparent 62%
+    ),
+    rgb(var(--surface) / 0.66);
+  backdrop-filter: blur(24px) saturate(200%) contrast(108%);
+  -webkit-backdrop-filter: blur(24px) saturate(200%) contrast(108%);
+  box-shadow: inset 0 1px 0 rgb(var(--gold) / 0.2),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.3), 0 30px 80px -40px rgba(0, 0, 0, 0.9);
+}
+
+/* Verre liquide : la même matière, poussée — reflet spéculaire en haut à
+   gauche, halo doré diffus, et une onde lumineuse qui dérive lentement en
+   surface pour donner l'impression que la matière est vivante. */
+.liquid-glass {
+  @apply relative overflow-hidden rounded-[1.9rem];
+  border: 1px solid rgb(var(--gold) / 0.3);
+  /* Aucun voile blanc ni crème : un blanc translucide désature tout ce qu'il
+     recouvre et donne cet aspect grisé. Les reflets sont donc teintés —
+     améthyste en haut à gauche, braise en bas à droite — posés sur la surface
+     du thème, assez opaque pour rester dense. */
+  background: radial-gradient(
+      116% 82% at 14% -8%,
+      rgba(124, 74, 196, 0.5),
+      transparent 58%
+    ),
+    radial-gradient(
+      96% 68% at 110% 106%,
+      rgba(224, 99, 42, 0.38),
+      transparent 60%
+    ),
+    rgb(var(--surface) / 0.72);
+  backdrop-filter: blur(30px) saturate(215%) contrast(112%);
+  -webkit-backdrop-filter: blur(30px) saturate(215%) contrast(112%);
+  box-shadow: inset 0 1.5px 0 rgb(var(--gold) / 0.34),
+    inset 0 -1.5px 0 rgba(0, 0, 0, 0.42),
+    0 40px 100px -50px rgba(0, 0, 0, 0.95),
+    0 0 80px -34px rgba(124, 74, 196, 0.6),
+    0 0 64px -36px rgba(224, 99, 42, 0.5);
+}
+/* Arête de lumière dorée en haut, comme sur une tranche de verre épais */
+.liquid-glass::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  background: linear-gradient(
+    to bottom,
+    rgb(var(--gold) / 0.14),
+    transparent 22%
+  );
+}
+/* Onde dorée qui traverse la surface */
+.liquid-glass > .liquid-sheen {
+  position: absolute;
+  inset: -40%;
+  pointer-events: none;
+  background: radial-gradient(
+    42% 32% at 50% 50%,
+    rgb(var(--gold) / 0.16),
+    transparent 62%
+  );
+  animation: liquidDrift 14s ease-in-out infinite;
+}
+
+/* Filet néon en dégradé, tracé sur le bord uniquement */
+.neon-edge {
+  position: relative;
+}
+.neon-edge::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1.2px;
+  background: linear-gradient(135deg, #4b2e8c, #e0632a 52%, #c9a25e);
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  opacity: 0.55;
+  transition: opacity 0.5s ease;
+  pointer-events: none;
+}
+.neon-edge:hover::before {
+  opacity: 1;
+}
+
+/* Variante animée : une lueur fait le tour du cadre en continu. Le dégradé
+   conique tourne autour de son centre, le masque ne laisse voir que le bord.
+   Chaque carte reçoit un --edge-delay différent pour désynchroniser. */
+.neon-travel {
+  position: relative;
+}
+.neon-travel::before {
+  content: "";
+  position: absolute;
+  /* recouvre la bordure de la carte plutôt que de s'y ajouter, sinon on voit
+     deux traits parallèles */
+  inset: -1px;
+  border-radius: inherit;
+  padding: 1.3px;
+  background: conic-gradient(
+    from var(--edge-angle),
+    rgb(var(--gold) / 0.12) 0deg,
+    rgb(var(--gold) / 0.12) 26deg,
+    rgba(75, 46, 140, 0.75) 62deg,
+    rgba(224, 99, 42, 0.95) 96deg,
+    rgb(var(--gold) / 0.95) 124deg,
+    rgba(75, 46, 140, 0.55) 168deg,
+    rgb(var(--gold) / 0.12) 216deg,
+    rgb(var(--gold) / 0.12) 360deg
+  );
+  mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  mask-composite: exclude;
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  animation: edgeTravel 6.5s linear infinite;
+  animation-delay: var(--edge-delay, 0s);
+  opacity: 0.75;
+  transition: opacity 0.5s ease;
+  pointer-events: none;
+}
+.neon-travel:hover::before {
+  opacity: 1;
+}
+
+/* Pastille de notation — le cœur de l'interaction */
+.chip {
+  @apply relative flex cursor-pointer flex-col items-center justify-center gap-1.5
+    rounded-2xl border border-fg/10 px-2 py-4 text-center;
+  background: rgb(var(--fg) / 0.02);
+  transition: transform 0.42s cubic-bezier(0.22, 1, 0.36, 1),
+    border-color 0.42s ease, background-color 0.42s ease, box-shadow 0.42s ease;
+}
+.chip:hover {
+  transform: translateY(-6px) scale(1.045);
+  border-color: rgb(var(--gold) / 0.65);
+  background: rgb(var(--gold) / 0.08);
+  box-shadow: 0 18px 40px -22px rgba(201, 162, 94, 0.9),
+    0 0 26px -12px rgba(224, 99, 42, 0.7);
+}
+.chip:focus-within {
+  outline: 2px solid rgb(var(--gold) / 0.7);
+  outline-offset: 3px;
+}
+.chip-emoji {
+  @apply text-[26px] leading-none;
+  filter: grayscale(45%);
+  opacity: 0.68;
+  transition: transform 0.42s cubic-bezier(0.22, 1, 0.36, 1), filter 0.42s ease,
+    opacity 0.42s ease;
+}
+.chip:hover .chip-emoji {
+  transform: scale(1.22) rotate(-4deg);
+  filter: grayscale(0%);
+  opacity: 1;
+}
+.chip-on {
+  border-color: transparent;
+  background: rgb(var(--gold) / 0.14);
+  box-shadow: 0 0 0 1.4px rgb(var(--gold) / 0.85),
+    0 20px 46px -24px rgba(201, 162, 94, 0.95),
+    0 0 34px -14px rgba(224, 99, 42, 0.75);
+}
+.chip-on .chip-emoji {
+  filter: grayscale(0%);
+  opacity: 1;
+  transform: scale(1.14);
+}
+
+/* Champ de saisie souligné, halo doré au focus */
+.field-luxe {
+  @apply w-full border-b border-fg/20 bg-transparent px-1 py-3.5 font-sans
+    text-fg placeholder:text-fg/25 outline-none;
+  transition: border-color 0.45s ease, box-shadow 0.45s ease;
+}
+.field-luxe:focus {
+  border-color: rgb(var(--gold));
+  box-shadow: 0 6px 22px -18px rgba(201, 162, 94, 1);
+}
+
+.area-luxe {
+  @apply w-full resize-none rounded-2xl border border-fg/15 bg-fg/[0.02] px-4 py-3.5
+    font-sans text-[14px] text-fg placeholder:text-fg/25 outline-none backdrop-blur-sm;
+  transition: border-color 0.45s ease, box-shadow 0.45s ease,
+    background-color 0.45s ease;
+}
+.area-luxe:focus {
+  border-color: rgb(var(--gold) / 0.8);
+  background: rgb(var(--gold) / 0.04);
+  box-shadow: 0 0 30px -18px rgba(201, 162, 94, 1);
+}
+
+/* Titre gravé */
+.engraved {
+  @apply font-display uppercase;
+  letter-spacing: 0.14em;
+  text-shadow: 0 1px 0 rgb(var(--fg) / 0.08), 0 14px 40px rgba(0, 0, 0, 0.5);
+}
+} /* fin @layer components — prestige */
+
+/* Trajets des halos — amplitudes en unités d'écran pour un déplacement
+   réellement visible d'un bord à l'autre. */
+@keyframes auroraA {
+  0% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  28% {
+    transform: translate3d(52vw, 22vh, 0) scale(1.16);
+  }
+  55% {
+    transform: translate3d(64vw, 58vh, 0) scale(0.9);
+  }
+  78% {
+    transform: translate3d(16vw, 72vh, 0) scale(1.1);
+  }
+  100% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+}
+@keyframes auroraB {
+  0% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  30% {
+    transform: translate3d(-46vw, -34vh, 0) scale(1.2);
+  }
+  60% {
+    transform: translate3d(-62vw, -66vh, 0) scale(0.94);
+  }
+  82% {
+    transform: translate3d(-18vw, -22vh, 0) scale(1.08);
+  }
+  100% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+}
+@keyframes auroraC {
+  0% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  33% {
+    transform: translate3d(-38vw, 30vh, 0) scale(1.22);
+  }
+  66% {
+    transform: translate3d(24vw, -36vh, 0) scale(0.88);
+  }
+  100% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+}
+
+/* Le point chaud qui parcourt le contour des cartes. L'angle doit être déclaré
+   comme propriété typée : sans @property, un navigateur ne sait pas interpoler
+   un <angle> dans un dégradé et l'animation resterait figée. */
+@property --edge-angle {
+  syntax: "<angle>";
+  inherits: false;
+  initial-value: 0deg;
+}
+
+@keyframes edgeTravel {
+  to {
+    --edge-angle: 360deg;
+  }
+}
+
+@keyframes liquidDrift {
+  0%,
+  100% {
+    transform: translate3d(-16%, -10%, 0) scale(1);
+  }
+  50% {
+    transform: translate3d(18%, 12%, 0) scale(1.25);
+  }
+}
+
+/* Sur mobile, des halos de 130px de flou coûtent cher au GPU : on allège. */
+@media (max-width: 640px) {
+  .aurora span {
+    filter: blur(72px);
+    opacity: 0.4;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .aurora span,
+  .liquid-glass > .liquid-sheen,
+  .neon-travel::before,
+  .chip,
+  .chip-emoji {
+    animation: none !important;
+    transition: none !important;
+  }
+  .chip:hover {
+    transform: none;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .animate-kenburns,
   .animate-marquee,

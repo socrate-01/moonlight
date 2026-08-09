@@ -6,6 +6,7 @@ import { collection, onSnapshot, orderBy, query } from "firebase/firestore";
 import { signOut } from "firebase/auth";
 import { auth, db } from "@/lib/firebase";
 import { deleteReservation, setPresent, type Reservation } from "@/lib/reservations";
+import { countAttendees, syncAttendees, TEST_EMAILS } from "@/lib/attendees";
 
 function fmt(ts?: { toDate: () => Date } | null) {
   if (!ts) return "";
@@ -80,6 +81,9 @@ export default function Dashboard() {
   const [alcoholOnly, setAlcoholOnly] = useState(false);
   const [allergyOnly, setAllergyOnly] = useState(false);
   const [busy, setBusy] = useState<string | null>(null);
+  const [allowed, setAllowed] = useState<number | null>(null);
+  const [syncing, setSyncing] = useState(false);
+  const [syncMsg, setSyncMsg] = useState("");
 
   useEffect(() => {
     const qy = query(collection(db, "reservations"), orderBy("createdAt", "desc"));
@@ -87,6 +91,32 @@ export default function Dashboard() {
       setItems(snap.docs.map((d) => ({ id: d.id, ...(d.data() as object) } as Reservation)));
     });
   }, []);
+
+  useEffect(() => {
+    countAttendees().then(setAllowed).catch(() => setAllowed(null));
+  }, []);
+
+  /** Recalcule la liste blanche des avis à partir des inscrits actuels (plus
+   *  les adresses de test). À relancer après de nouvelles inscriptions. */
+  const sync = async () => {
+    setSyncing(true);
+    setSyncMsg("");
+    try {
+      const emails = [...items.map((i) => i.email), ...TEST_EMAILS];
+      const { total, added, removed } = await syncAttendees(emails);
+      setAllowed(total);
+      setSyncMsg(
+        added || removed
+          ? `${total} adresses autorisées (${added} ajoutée(s), ${removed} retirée(s)).`
+          : `${total} adresses autorisées — déjà à jour.`
+      );
+    } catch (err) {
+      console.error(err);
+      setSyncMsg("Échec de la synchronisation. Vérifiez les règles Firestore.");
+    } finally {
+      setSyncing(false);
+    }
+  };
 
   const presentCount = useMemo(() => items.filter((i) => i.present).length, [items]);
   const alcoholCount = useMemo(
@@ -184,6 +214,12 @@ export default function Dashboard() {
               Exporter · {items.length}
             </button>
             <Link
+              href="/admin/feedback"
+              className="rounded-full border border-fg/25 px-4 py-2 font-sans text-[11px] uppercase tracking-wide2 text-fg transition hover:bg-fg hover:text-bg"
+            >
+              Avis
+            </Link>
+            <Link
               href="/admin/scan"
               className="rounded-full border border-gold/50 px-4 py-2 font-sans text-[11px] uppercase tracking-wide2 text-gold transition hover:bg-gold hover:text-night"
             >
@@ -262,6 +298,30 @@ export default function Dashboard() {
               Réinitialiser
             </button>
           )}
+        </div>
+
+        {/* liste blanche du formulaire d'avis */}
+        <div className="mb-8 flex flex-wrap items-center gap-x-4 gap-y-2 rounded-xl border border-fg/10 bg-surface px-5 py-4">
+          <div className="min-w-0 flex-1">
+            <p className="font-sans text-[11px] uppercase tracking-wide2 text-gold">
+              Accès au formulaire d&apos;avis
+            </p>
+            <p className="mt-1 font-sans text-[12px] text-muted">
+              {allowed === null
+                ? "Liste blanche non initialisée — synchronisez pour ouvrir /feedback."
+                : `${allowed} adresse${allowed > 1 ? "s" : ""} autorisée${
+                    allowed > 1 ? "s" : ""
+                  }. À relancer après de nouvelles inscriptions.`}
+              {syncMsg && <span className="ml-2 text-fg">{syncMsg}</span>}
+            </p>
+          </div>
+          <button
+            onClick={sync}
+            disabled={syncing || items.length === 0}
+            className="shrink-0 rounded-full border border-gold/50 px-4 py-2 font-sans text-[11px] uppercase tracking-wide2 text-gold transition hover:bg-gold hover:text-night disabled:opacity-40"
+          >
+            {syncing ? "Synchronisation…" : "Synchroniser"}
+          </button>
         </div>
 
         {/* list */}

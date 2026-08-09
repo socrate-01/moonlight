@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Fraunces, Manrope } from "next/font/google";
+import { Cinzel, Fraunces, Jost, Manrope } from "next/font/google";
 import "./globals.css";
 
 const display = Fraunces({
@@ -14,6 +14,22 @@ const sans = Manrope({
   subsets: ["latin"],
   weight: ["300", "400", "500", "600"],
   variable: "--font-sans",
+  display: "swap",
+});
+
+/* Duo « prestige » réservé aux pages d'avis : capitales romaines gravées pour
+   les titres, grotesque géométrique pour le texte. Aucun italique. */
+const displayPrestige = Cinzel({
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
+  variable: "--font-display-prestige",
+  display: "swap",
+});
+
+const sansPrestige = Jost({
+  subsets: ["latin"],
+  weight: ["200", "300", "400", "500", "600"],
+  variable: "--font-sans-prestige",
   display: "swap",
 });
 
@@ -39,7 +55,7 @@ export default function RootLayout({
   return (
     <html
       lang="fr"
-      className={`${display.variable} ${sans.variable} dark`}
+      className={`${display.variable} ${sans.variable} ${displayPrestige.variable} ${sansPrestige.variable} dark`}
       suppressHydrationWarning
     >
       <head>

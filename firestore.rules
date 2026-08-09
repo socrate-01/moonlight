@@ -11,6 +11,49 @@ service cloud.firestore {
       allow read, update, delete: if request.auth != null;
     }
 
+    // Liste blanche : un document vide par invité autorisé, nommé d'après
+    // l'empreinte SHA-256 de son adresse. Aucune adresse en clair.
+    match /attendees/{emailHash} {
+      // Vérifier une adresse précise est public (c'est tout l'objet du
+      // formulaire d'avis), mais lister la collection est réservé aux admins :
+      // impossible d'énumérer les invités.
+      allow get: if true;
+      allow list: if request.auth != null;
+      allow write: if request.auth != null;
+    }
+
+    match /feedbacks/{emailHash} {
+      // Le dépôt d'un avis n'est autorisé que si l'empreinte correspond à une
+      // adresse de la liste blanche. La restriction est donc appliquée par
+      // Firestore lui-même : contourner le formulaire ou la route API ne sert
+      // à rien. L'identifiant étant l'empreinte, c'est un avis par personne —
+      // un renvoi met à jour le précédent.
+      allow create, update: if isValidFeedback()
+        && exists(/databases/$(database)/documents/attendees/$(emailHash));
+
+      // Seuls les admins authentifiés lisent ou suppriment les avis.
+      allow read, delete: if request.auth != null;
+    }
+
+    function isValidRating(v) {
+      return (v is int || v is float) && v >= 1 && v <= 5;
+    }
+
+    function isValidFeedback() {
+      let d = request.resource.data;
+      let r = d.ratings;
+      return d.email is string && d.email.size() > 0 && d.email.size() < 320
+        && d.comment is string && d.comment.size() <= 2000
+        && d.suggestions is string && d.suggestions.size() <= 2000
+        && d.returning in ['oui', 'peut-etre', 'non']
+        && isValidRating(r.event)
+        && isValidRating(r.theme)
+        && isValidRating(r.dressCode)
+        && isValidRating(r.cocktails)
+        && isValidRating(r.evening)
+        && isValidRating(r.ambiance);
+    }
+
     function isValidReservation() {
       let d = request.resource.data;
       return d.name is string && d.name.size() > 0 && d.name.size() < 200
