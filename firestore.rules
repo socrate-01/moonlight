@@ -35,6 +35,118 @@ service cloud.firestore {
       allow read, delete: if request.auth != null;
     }
 
+    // Demandes de réservation : dépôt public, traitement réservé aux admins.
+    match /bookings/{id} {
+      allow create: if isValidBooking();
+      allow read, update, delete: if request.auth != null;
+    }
+
+    // Disponibilités : lisibles par tous (le calendrier public en dépend),
+    // modifiables par les seuls admins.
+    match /settings/{doc} {
+      allow get: if true;
+      allow write: if request.auth != null;
+    }
+
+    // Infolettre : inscription publique, liste réservée aux admins.
+    match /newsletter/{emailHash} {
+      allow create: if isValidSubscriber();
+      allow update: if isValidSubscriber() || isNewsletterUnsubscribe();
+      allow read, delete: if request.auth != null;
+    }
+
+    // Carnet d'adresses du module Mailing. Collection distincte de
+    // l'infolettre : les deux listes n'ont pas la même origine de
+    // consentement, et se retirer de l'une ne doit pas retirer de l'autre.
+    //
+    // L'identifiant du document est l'adresse en minuscules.
+    match /mailingContacts/{email} {
+      // Le carnet est saisi par l'organisateur : aucune écriture publique
+      // d'ajout, aucune lecture publique. Rien ne fuit de la liste.
+      allow read, create, delete: if request.auth != null;
+
+      // Deux façons de modifier une fiche :
+      //  - un admin authentifié, sans restriction ;
+      //  - un désabonnement anonyme, mais seulement en prouvant la
+      //    connaissance du jeton. La règle compare la valeur ÉCRITE au jeton
+      //    STOCKÉ, que l'appelant ne peut pas lire. Connaître l'adresse ne
+      //    suffit donc pas à retirer quelqu'un de la liste, et seuls les
+      //    champs de statut peuvent bouger.
+      allow update: if request.auth != null || isMailingUnsubscribe();
+    }
+
+    // Index jeton → adresse. L'identifiant du document EST le jeton.
+    //
+    // `get` est public : c'est ce qui permet à la page de désabonnement de
+    // retrouver une fiche à partir du seul lien reçu par courriel — ce qui
+    // suppose de connaître le jeton. `list` reste fermé : impossible
+    // d'énumérer les adresses. Même idiome que la liste blanche `attendees`.
+    match /mailingTokens/{token} {
+      allow get: if true;
+      allow list, write: if request.auth != null;
+    }
+
+    /** Retrait anonyme d'un contact du carnet.
+     *
+     *  Deux conditions, et rien d'autre n'est permis : l'écriture ne touche que
+     *  les champs de statut, et elle porte en clair le jeton déjà stocké dans
+     *  la fiche. L'appelant ne pouvant pas lire la fiche, il doit connaître le
+     *  jeton — c'est-à-dire avoir reçu le courriel. Deviner l'adresse ne suffit
+     *  pas, et un jeton de 32 caractères hexadécimaux n'est pas devinable. */
+    function isMailingUnsubscribe() {
+      let d = request.resource.data;
+      return d.diff(resource.data).affectedKeys()
+               .hasOnly(['status', 'unsubscribedAt', 'updatedAt', 'unsubscribeProof'])
+        && d.status == 'unsubscribed'
+        && d.unsubscribeProof is string
+        && d.unsubscribeProof == resource.data.unsubscribeToken;
+    }
+
+    /** Même mécanique pour l'infolettre, dont la fiche porte le jeton sous le
+     *  nom `token` et marque le retrait par `unsubscribedAt`. */
+    function isNewsletterUnsubscribe() {
+      let d = request.resource.data;
+      return d.diff(resource.data).affectedKeys()
+               .hasOnly(['unsubscribedAt', 'unsubProof'])
+        && d.unsubProof is string
+        && d.unsubProof == resource.data.token;
+    }
+
+    // Messages du formulaire de contact.
+    match /messages/{id} {
+      allow create: if isValidMessage();
+      allow read, update, delete: if request.auth != null;
+    }
+
+    function isValidBooking() {
+      let d = request.resource.data;
+      return d.name is string && d.name.size() > 0 && d.name.size() < 200
+        && d.email is string && d.email.size() > 0 && d.email.size() < 320
+        && d.phone is string && d.phone.size() < 40
+        && d.date is string && d.date.matches('[0-9]{4}-[0-9]{2}-[0-9]{2}')
+        && d.guests is int && d.guests > 0 && d.guests <= 1000
+        && d.notes is string && d.notes.size() <= 2000
+        // Le statut de départ ne peut pas être choisi par le demandeur :
+        // sans cela, n'importe qui déposerait une réservation déjà acceptée.
+        && d.status == 'pending'
+        && d.depositSimulated == false;
+    }
+
+    function isValidSubscriber() {
+      let d = request.resource.data;
+      return d.email is string && d.email.size() > 0 && d.email.size() < 320
+        && d.source is string && d.source.size() < 60
+        && d.token is string && d.token.size() <= 64;
+    }
+
+    function isValidMessage() {
+      let d = request.resource.data;
+      return d.name is string && d.name.size() > 0 && d.name.size() < 200
+        && d.email is string && d.email.size() > 0 && d.email.size() < 320
+        && d.body is string && d.body.size() > 0 && d.body.size() <= 4000
+        && d.handled == false;
+    }
+
     function isValidRating(v) {
       return (v is int || v is float) && v >= 1 && v <= 5;
     }

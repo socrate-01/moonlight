@@ -11,6 +11,7 @@ import {
 } from "firebase/firestore";
 import { db } from "./firebase";
 import { hashEmail, normaliseEmail } from "./attendees";
+import { MAILING_TOKENS_COLLECTION } from "./mailing";
 
 export type Subscriber = {
   id: string;
@@ -46,13 +47,25 @@ export async function subscribe(email: string, source = "site") {
     return { ok: true, already: true };
   }
 
+  const token = existing.exists() ? existing.data().token : makeToken();
+
   await setDoc(ref, {
     email: clean,
     source,
     consentAt: serverTimestamp(),
-    token: existing.exists() ? existing.data().token : makeToken(),
+    token,
     unsubscribedAt: null,
   });
+
+  // Index public jeton → adresse, partagé avec le carnet de mailing : c'est
+  // lui qui permet à /desabonnement de retrouver une fiche à partir du seul
+  // jeton, sans donner le droit de lister la collection.
+  await setDoc(doc(db, MAILING_TOKENS_COLLECTION, token), {
+    email: clean,
+    list: "newsletter",
+    ref: id,
+  });
+
   return { ok: true, already: false };
 }
 

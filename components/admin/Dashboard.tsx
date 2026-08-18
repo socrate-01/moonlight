@@ -214,6 +214,12 @@ export default function Dashboard() {
               Exporter · {items.length}
             </button>
             <Link
+              href="/admin/mailing"
+              className="rounded-full border border-fg/25 px-4 py-2 font-sans text-[11px] uppercase tracking-wide2 text-fg transition hover:bg-fg hover:text-bg"
+            >
+              Mailing
+            </Link>
+            <Link
               href="/admin/feedback"
               className="rounded-full border border-fg/25 px-4 py-2 font-sans text-[11px] uppercase tracking-wide2 text-fg transition hover:bg-fg hover:text-bg"
             >
