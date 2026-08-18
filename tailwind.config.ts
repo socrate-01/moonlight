@@ -16,6 +16,7 @@ const config: Config = {
         fg: "rgb(var(--fg) / <alpha-value>)",
         muted: "rgb(var(--muted) / <alpha-value>)",
         gold: "rgb(var(--gold) / <alpha-value>)",
+        band: "rgb(var(--band) / <alpha-value>)",
         accent: "rgb(var(--accent) / <alpha-value>)",
         // Fixed brand colors
         indigo: { plum: "#4b2e8c", deep: "#3a2570" },

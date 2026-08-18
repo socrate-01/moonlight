@@ -12,6 +12,10 @@
   --muted: 90 82 118;
   --gold: 169 136 76;
   --accent: 75 46 140; /* indigo */
+  /* Bandes de respiration. Écrire « noir » en dur imposait, en thème clair,
+     un dégradé du noir pur vers le crème : une rampe énorme et sale. La teinte
+     suit donc le thème, ce qui garde des raccords courts dans les deux cas. */
+  --band: 222 214 196; /* sable chaud, plus soutenu que la surface */
 }
 
 .dark {
@@ -23,6 +27,7 @@
   --muted: 183 178 199;
   --gold: 201 162 94;
   --accent: 224 99 42; /* terracotta */
+  --band: 4 5 16; /* presque noir, à peine sous le fond */
 }
 
 * {
@@ -50,15 +55,25 @@ section {
   color: #fff;
 }
 
+/* Barre de défilement : une seule couleur chaude, sans dégradé — le violet
+   jurait avec le reste et le dégradé attirait l'œil inutilement. */
 ::-webkit-scrollbar {
-  width: 10px;
+  width: 6px;
 }
 ::-webkit-scrollbar-track {
-  background: rgb(var(--surface));
+  background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: linear-gradient(180deg, #4b2e8c, rgb(var(--gold)));
+  background: rgb(var(--gold) / 0.3);
   border-radius: 999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgb(var(--gold) / 0.55);
+}
+/* Firefox n'a pas les pseudo-éléments WebKit : il faut la propriété standard. */
+html {
+  scrollbar-color: rgb(var(--gold) / 0.3) transparent;
+  scrollbar-width: thin;
 }
 
 @layer components {
@@ -224,9 +239,12 @@ section {
   font-style: normal;
 }
 
-/* Halos colorés dérivant en fond de page */
+/* Halos colorés dérivant en fond de section.
+   `absolute` et non `fixed` : en fixe, les halos d'une seule section
+   teintaient la totalité de l'écran, y compris les blocs voisins censés
+   rester neutres. */
 .aurora {
-  position: fixed;
+  position: absolute;
   inset: 0;
   z-index: 0;
   overflow: hidden;
@@ -547,6 +565,92 @@ section {
 @keyframes edgeTravel {
   to {
     --edge-angle: 360deg;
+  }
+}
+
+/* =====================================================================
+   Bascule clair / sombre
+   L'API View Transitions n'existe pas avant Safari 18 et reste récente
+   ailleurs : on ne s'appuie donc pas dessus. Un simple calque animé en
+   JavaScript donne le même geste, à l'identique partout, et sans le coût
+   de la capture d'écran que cette API impose.
+   ===================================================================== */
+.theme-sweep-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  pointer-events: none;
+  will-change: clip-path, opacity;
+}
+
+/* Pendant la bascule, on retire ce qui entre en concurrence avec elle :
+   le fondu de couleur du body brouillait le geste, et les animations
+   permanentes consomment des images au pire moment. */
+html.theme-swapping body,
+html.theme-swapping section {
+  transition: none !important;
+}
+html.theme-swapping .aurora span,
+html.theme-swapping .liquid-glass > .liquid-sheen,
+html.theme-swapping .neon-travel::before {
+  animation-play-state: paused;
+}
+
+/* Molette de la capsule : va-et-vient continu de haut en bas, comme le
+   flottement de la flèche qu'elle remplace. */
+.mouse-wheel {
+  animation: mouseWheel 2.4s ease-in-out infinite;
+}
+@keyframes mouseWheel {
+  0%,
+  100% {
+    transform: translateY(0);
+    opacity: 0.55;
+  }
+  50% {
+    transform: translateY(15px);
+    opacity: 1;
+  }
+}
+
+/* Lévitation lente. Posée sur l'image seule et non sur son conteneur : le halo
+   reste immobile, si bien que le verre semble flotter au-dessus de sa lumière.
+   En CSS plutôt qu'en JavaScript, pour ne pas entrer en conflit avec la
+   transformation d'entrée gérée par framer-motion. */
+.float-slow {
+  animation: floatSlow 6s ease-in-out infinite;
+}
+@keyframes floatSlow {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-14px);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .float-slow {
+    animation: none;
+  }
+}
+
+/* Filet de section : il se dessine du centre vers les bords à l'apparition. */
+.rule-draw {
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgb(var(--gold) / 0.45) 35%,
+    rgb(var(--gold) / 0.7) 50%,
+    rgb(var(--gold) / 0.45) 65%,
+    transparent
+  );
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mouse-wheel {
+    animation: none;
   }
 }
 

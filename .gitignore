@@ -16,3 +16,9 @@ npm-debug.log*
 
 # Exports de la liste d'invités : données personnelles, jamais dans le dépôt
 /moonlight-reservations-*.csv
+
+# Images de référence de travail (les copies utilisées sont dans public/)
+/banner.png
+/cocktailBanner.jpg
+/cocktailBar.avif
+.env*
