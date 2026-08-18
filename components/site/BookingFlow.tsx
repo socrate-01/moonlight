@@ -7,14 +7,18 @@ import {
   createBooking,
   getAvailability,
   getTakenDates,
-  simulateDeposit,
   DEFAULT_AVAILABILITY,
   type Availability,
 } from "@/lib/bookings";
-import { EVENT_TYPES, PACKAGES, PRICING, money } from "@/lib/site";
+import {
+  BOOKING_SOURCES,
+  BUDGET_RANGES,
+  EVENT_TYPES,
+  SERVICE_OPTIONS,
+} from "@/lib/site";
 
 const ease = [0.22, 1, 0.36, 1] as const;
-const STEPS = ["Date", "Votre événement", "Vos coordonnées", "Récapitulatif"];
+const STEPS = ["Date", "Événement", "Vos besoins", "Coordonnées", "Récapitulatif"];
 
 const key = (d: Date) =>
   `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(
@@ -35,6 +39,21 @@ const MONTHS = [
 ];
 const DOW = ["L", "M", "M", "J", "V", "S", "D"];
 
+/** Filet de séparation du récapitulatif.
+ *
+ *  Les lignes pleines d'origine découpaient la fiche en tranches et tiraient
+ *  l'œil plus que le contenu. Un dégradé qui naît et meurt dans le fond, avec
+ *  un point doré au centre, sépare sans trancher. */
+function Divider() {
+  return (
+    <div aria-hidden className="flex items-center gap-3 py-1">
+      <span className="h-px flex-1 bg-gradient-to-r from-transparent to-gold/30" />
+      <span className="h-1 w-1 rotate-45 bg-gold/50" />
+      <span className="h-px flex-1 bg-gradient-to-l from-transparent to-gold/30" />
+    </div>
+  );
+}
+
 export default function BookingFlow() {
   const [step, setStep] = useState(0);
   const [avail, setAvail] = useState<Availability>(DEFAULT_AVAILABILITY);
@@ -50,7 +69,11 @@ export default function BookingFlow() {
   const [eventType, setEventType] = useState("");
   const [eventTypeOther, setEventTypeOther] = useState("");
   const [guests, setGuests] = useState(60);
-  const [packageKey, setPackageKey] = useState("signature");
+
+  const [needs, setNeeds] = useState<string[]>([]);
+  const [budget, setBudget] = useState("");
+  const [source, setSource] = useState("");
+  const [sourceOther, setSourceOther] = useState("");
 
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -63,8 +86,7 @@ export default function BookingFlow() {
 
   const [sending, setSending] = useState(false);
   const [error, setError] = useState("");
-  const [bookingId, setBookingId] = useState("");
-  const [depositDone, setDepositDone] = useState(false);
+  const [sent, setSent] = useState(false);
 
   useEffect(() => {
     getAvailability().then((a) => {
@@ -87,8 +109,7 @@ export default function BookingFlow() {
   const days = useMemo(() => {
     const first = new Date(cursor.getFullYear(), cursor.getMonth(), 1);
     const last = new Date(cursor.getFullYear(), cursor.getMonth() + 1, 0);
-    // Lundi comme premier jour de la semaine.
-    const lead = (first.getDay() + 6) % 7;
+    const lead = (first.getDay() + 6) % 7; // lundi en tête de semaine
     const cells: (Date | null)[] = Array(lead).fill(null);
     for (let i = 1; i <= last.getDate(); i++) {
       cells.push(new Date(cursor.getFullYear(), cursor.getMonth(), i));
@@ -105,17 +126,8 @@ export default function BookingFlow() {
     return "open";
   };
 
-  /* ---------------- Estimation ---------------- */
-
-  const pkg = PACKAGES.find((p) => p.key === packageKey) ?? PACKAGES[1];
-
-  const estimate = useMemo(() => {
-    // Barème indicatif : le forfait couvre un effectif, chaque invité au-delà
-    // se facture à l'unité. À CONFIRMER avec vos vrais tarifs.
-    const included = Number(pkg.guests.replace(/\D/g, "")) || 50;
-    const extra = Math.max(0, guests - included);
-    return Math.max(PRICING.startingAt, pkg.from + extra * 12);
-  }, [pkg, guests]);
+  const toggleNeed = (v: string) =>
+    setNeeds((list) => (list.includes(v) ? list.filter((x) => x !== v) : [...list, v]));
 
   /* ---------------- Validation par étape ---------------- */
 
@@ -126,21 +138,34 @@ export default function BookingFlow() {
       (eventType !== "autre" || eventTypeOther.trim()) &&
       guests > 0
     ),
+    Boolean(needs.length > 0 && budget && source && (source !== "autre" || sourceOther.trim())),
     Boolean(name.trim() && email.trim() && phone.trim() && place.label.trim()),
     true,
   ];
+
+  const eventLabel =
+    eventType === "autre"
+      ? eventTypeOther
+      : EVENT_TYPES.find((t) => t.value === eventType)?.label ?? "";
+
+  const needLabels = needs
+    .map((n) => SERVICE_OPTIONS.find((o) => o.value === n)?.label ?? n)
+    .join(" · ");
 
   const submit = async () => {
     if (sending) return;
     setError("");
     setSending(true);
     try {
-      const id = await createBooking({
+      await createBooking({
         date, startTime, endTime,
         eventType,
         eventTypeOther: eventType === "autre" ? eventTypeOther.trim() : "",
         guests,
-        packageKey,
+        needs,
+        budget,
+        source,
+        sourceOther: source === "autre" ? sourceOther.trim() : "",
         name: name.trim(),
         email: email.trim().toLowerCase(),
         phone: phone.trim(),
@@ -151,9 +176,8 @@ export default function BookingFlow() {
         lat: place.lat,
         lon: place.lon,
         notes: notes.trim(),
-        estimate,
       });
-      setBookingId(id);
+      setSent(true);
     } catch (err) {
       console.error(err);
       setError("Envoi impossible pour le moment. Réessayez dans un instant.");
@@ -164,7 +188,7 @@ export default function BookingFlow() {
 
   /* ---------------- Confirmation ---------------- */
 
-  if (bookingId) {
+  if (sent) {
     return (
       <motion.div
         initial={{ opacity: 0, y: 16 }}
@@ -174,46 +198,40 @@ export default function BookingFlow() {
       >
         <span className="text-5xl">🌙</span>
         <h2 className="engraved mt-7 text-[24px] leading-tight text-fg sm:text-[30px]">
-          Demande envoyée
+          Demande reçue
         </h2>
         <div className="rule mx-auto my-8 max-w-[6rem]" />
+
         <p className="mx-auto max-w-md font-sans text-[14px] font-light leading-[2] text-muted">
           Votre demande pour le <span className="text-fg">{longDate(date)}</span>{" "}
-          est enregistrée. Nous l&apos;étudions et vous répondons{" "}
-          <span className="text-fg">sous 24 heures</span>. Si elle est acceptée,
-          vous recevrez une confirmation par email à {email}.
+          nous est parvenue. Nous l&apos;étudions à la main : ce que vous voulez,
+          le nombre d&apos;invités, le lieu et votre budget.
         </p>
 
-        <div className="mt-10 rounded-2xl border border-fg/10 bg-fg/[0.02] p-6 text-left">
-          <p className="font-sans text-[10px] uppercase tracking-[0.28em] text-gold">
-            Acompte
-          </p>
-          <p className="mt-3 font-sans text-[13px] font-light leading-[1.9] text-muted">
-            Un acompte de {money(PRICING.deposit)} confirmera et bloquera la
-            date. Il vous sera demandé une fois la demande acceptée, et se
-            déduira du montant final.
-          </p>
-
-          {depositDone ? (
-            <p className="mt-5 rounded-full bg-emerald-500/15 py-3 text-center font-sans text-[11px] uppercase tracking-[0.2em] text-emerald-400">
-              ✓ Acompte simulé, aucun paiement réel
-            </p>
-          ) : (
-            <button
-              onClick={async () => {
-                await simulateDeposit(bookingId);
-                setDepositDone(true);
-              }}
-              className="btn-ghost mt-5 w-full justify-center"
-            >
-              Simuler le paiement de l&apos;acompte
-            </button>
-          )}
-          <p className="mt-3 text-center font-sans text-[10px] leading-relaxed text-muted/70">
-            Démonstration : aucune coordonnée bancaire n&apos;est demandée ni
-            enregistrée. Le paiement réel passera par Stripe.
-          </p>
+        <div className="mt-9 space-y-4 text-left">
+          {[
+            ["1", "Nous étudions votre demande", "Aucun tarif automatique : chaque prestation est chiffrée pour ce que vous demandez réellement."],
+            ["2", `Vous recevez notre proposition à ${email}`, "Un courriel détaillé, avec ce que nous vous recommandons et le prix correspondant."],
+            ["3", "Vous confirmez si elle vous convient", "Un bouton dans le courriel. Vous réglez alors 50 % en acompte, et la date est bloquée."],
+          ].map(([n, title, body]) => (
+            <div key={n} className="flex gap-4 rounded-2xl bg-fg/[0.03] p-5">
+              <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-gold/50 font-sans text-[11px] tabular-nums text-gold">
+                {n}
+              </span>
+              <div>
+                <p className="font-sans text-[13px] text-fg">{title}</p>
+                <p className="mt-1.5 font-sans text-[12px] font-light leading-[1.8] text-muted">
+                  {body}
+                </p>
+              </div>
+            </div>
+          ))}
         </div>
+
+        <p className="mt-8 font-sans text-[11px] font-light leading-relaxed text-muted/80">
+          Vous ne payez rien aujourd&apos;hui. Pensez à vérifier vos indésirables,
+          notre réponse s&apos;y égare parfois.
+        </p>
       </motion.div>
     );
   }
@@ -264,114 +282,110 @@ export default function BookingFlow() {
             transition={{ duration: 0.45, ease }}
             className="rounded-2xl bg-surface/50 p-5 sm:p-8"
           >
-          <div className="grid gap-10 lg:grid-cols-[minmax(0,22rem)_1fr] lg:gap-14">
-          <div>
-            <div className="mb-7 flex items-center justify-between gap-4">
-              <button
-                onClick={() =>
-                  setCursor(new Date(cursor.getFullYear(), cursor.getMonth() - 1, 1))
-                }
-                aria-label="Mois précédent"
-                className="flex h-9 w-9 items-center justify-center rounded-full border border-fg/20 text-fg transition-colors duration-500 hover:border-gold hover:text-gold"
-              >
-                ‹
-              </button>
-              <p className="engraved text-[17px] text-fg">
-                {MONTHS[cursor.getMonth()]} {cursor.getFullYear()}
-              </p>
-              <button
-                onClick={() =>
-                  setCursor(new Date(cursor.getFullYear(), cursor.getMonth() + 1, 1))
-                }
-                aria-label="Mois suivant"
-                className="flex h-9 w-9 items-center justify-center rounded-full border border-fg/20 text-fg transition-colors duration-500 hover:border-gold hover:text-gold"
-              >
-                ›
-              </button>
-            </div>
-
-            <div className="grid grid-cols-7 gap-1.5">
-              {DOW.map((d, i) => (
-                <span
-                  key={i}
-                  className="pb-2 text-center font-sans text-[10px] uppercase tracking-[0.12em] text-muted/70"
-                >
-                  {d}
-                </span>
-              ))}
-              {days.map((d, i) => {
-                if (!d) return <span key={`e${i}`} />;
-                const k = key(d);
-                const state = dayState(d);
-                const selected = date === k;
-                return (
+            <div className="grid gap-10 lg:grid-cols-[minmax(0,22rem)_1fr] lg:gap-14">
+              <div>
+                <div className="mb-7 flex items-center justify-between gap-4">
                   <button
-                    key={k}
-                    disabled={state !== "open"}
-                    onClick={() => setDate(k)}
-                    title={
-                      state === "taken"
-                        ? "Date déjà réservée"
-                        : state === "closed"
-                        ? "Fermé"
-                        : undefined
+                    onClick={() =>
+                      setCursor(new Date(cursor.getFullYear(), cursor.getMonth() - 1, 1))
                     }
-                    className={`flex h-11 items-center justify-center rounded-xl font-sans text-[13px] tabular-nums transition-all duration-400 ${
-                      selected
-                        ? "bg-fg text-bg ring-2 ring-gold/70 ring-offset-2 ring-offset-bg"
-                        : state === "open"
-                        ? "border border-fg/15 text-fg hover:-translate-y-0.5 hover:border-gold hover:bg-gold/10 hover:text-gold"
-                        : state === "taken"
-                        ? "border border-terracotta/30 text-terracotta/60 line-through"
-                        : "text-muted/40"
-                    }`}
+                    aria-label="Mois précédent"
+                    className="flex h-9 w-9 items-center justify-center rounded-full border border-fg/20 text-fg transition-colors duration-500 hover:border-gold hover:text-gold"
                   >
-                    {d.getDate()}
+                    ‹
                   </button>
-                );
-              })}
-            </div>
+                  <p className="engraved text-[17px] text-fg">
+                    {MONTHS[cursor.getMonth()]} {cursor.getFullYear()}
+                  </p>
+                  <button
+                    onClick={() =>
+                      setCursor(new Date(cursor.getFullYear(), cursor.getMonth() + 1, 1))
+                    }
+                    aria-label="Mois suivant"
+                    className="flex h-9 w-9 items-center justify-center rounded-full border border-fg/20 text-fg transition-colors duration-500 hover:border-gold hover:text-gold"
+                  >
+                    ›
+                  </button>
+                </div>
 
-          </div>
+                <div className="grid grid-cols-7 gap-1.5">
+                  {DOW.map((d, i) => (
+                    <span
+                      key={i}
+                      className="pb-2 text-center font-sans text-[10px] uppercase tracking-[0.12em] text-muted/70"
+                    >
+                      {d}
+                    </span>
+                  ))}
+                  {days.map((d, i) => {
+                    if (!d) return <span key={`e${i}`} />;
+                    const k = key(d);
+                    const state = dayState(d);
+                    const selected = date === k;
+                    return (
+                      <button
+                        key={k}
+                        disabled={state !== "open"}
+                        onClick={() => setDate(k)}
+                        title={
+                          state === "taken"
+                            ? "Date déjà réservée"
+                            : state === "closed"
+                            ? "Fermé"
+                            : undefined
+                        }
+                        className={`flex h-11 items-center justify-center rounded-xl font-sans text-[13px] tabular-nums transition-all duration-400 ${
+                          selected
+                            ? "bg-fg text-bg ring-2 ring-gold/70 ring-offset-2 ring-offset-bg"
+                            : state === "open"
+                            ? "border border-fg/15 text-fg hover:-translate-y-0.5 hover:border-gold hover:bg-gold/10 hover:text-gold"
+                            : state === "taken"
+                            ? "border border-terracotta/30 text-terracotta/60 line-through"
+                            : "text-muted/40"
+                        }`}
+                      >
+                        {d.getDate()}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
 
-          {/* Colonne d'appoint : la date retenue, les repères de lecture et
-              les conditions. Elle occupe la largeur au lieu de la laisser vide
-              et répond aux questions avant qu'on les pose. */}
-          <div className="flex flex-col justify-center gap-8">
-            <div>
-              <p className="font-sans text-[10px] uppercase tracking-[0.32em] text-gold">
-                Date retenue
-              </p>
-              <p className="engraved mt-4 text-[19px] leading-snug text-fg sm:text-[23px]">
-                {date ? longDate(date) : "Aucune pour l'instant"}
-              </p>
-              {!date && (
-                <p className="mt-3 font-sans text-[12px] font-light leading-relaxed text-muted">
-                  Choisissez un soir dans le calendrier. Les dates barrées sont
-                  déjà retenues par d'autres réceptions.
+              <div className="flex flex-col justify-center gap-8">
+                <div>
+                  <p className="font-sans text-[10px] uppercase tracking-[0.32em] text-gold">
+                    Date retenue
+                  </p>
+                  <p className="engraved mt-4 text-[19px] leading-snug text-fg sm:text-[23px]">
+                    {date ? longDate(date) : "Aucune pour l'instant"}
+                  </p>
+                  {!date && (
+                    <p className="mt-3 font-sans text-[12px] font-light leading-relaxed text-muted">
+                      Choisissez un soir dans le calendrier. Les dates barrées sont
+                      déjà retenues par d&apos;autres réceptions.
+                    </p>
+                  )}
+                </div>
+
+                <ul className="flex flex-col gap-3 border-t border-fg/12 pt-7 font-sans text-[10px] uppercase tracking-[0.14em] text-muted">
+                  <li className="flex items-center gap-3">
+                    <span className="h-2.5 w-2.5 shrink-0 rounded border border-fg/30" /> Libre
+                  </li>
+                  <li className="flex items-center gap-3">
+                    <span className="h-2.5 w-2.5 shrink-0 rounded border border-terracotta/40" /> Déjà réservé
+                  </li>
+                  <li className="flex items-center gap-3">
+                    <span className="h-2.5 w-2.5 shrink-0 rounded bg-fg ring-1 ring-gold/70" /> Votre choix
+                  </li>
+                </ul>
+
+                <p className="border-t border-fg/12 pt-7 font-sans text-[12px] font-light leading-[1.9] text-muted">
+                  Réservation possible à partir de {avail.leadTimeDays} jours.
+                  La date n&apos;est bloquée qu&apos;une fois notre proposition
+                  acceptée et l&apos;acompte réglé.
                 </p>
-              )}
+              </div>
             </div>
-
-            <ul className="flex flex-col gap-3 border-t border-fg/12 pt-7 font-sans text-[10px] uppercase tracking-[0.14em] text-muted">
-              <li className="flex items-center gap-3">
-                <span className="h-2.5 w-2.5 shrink-0 rounded border border-fg/30" /> Libre
-              </li>
-              <li className="flex items-center gap-3">
-                <span className="h-2.5 w-2.5 shrink-0 rounded border border-terracotta/40" /> Déjà réservé
-              </li>
-              <li className="flex items-center gap-3">
-                <span className="h-2.5 w-2.5 shrink-0 rounded bg-fg ring-1 ring-gold/70" /> Votre choix
-              </li>
-            </ul>
-
-            <p className="border-t border-fg/12 pt-7 font-sans text-[12px] font-light leading-[1.9] text-muted">
-              Réservation possible à partir de {avail.leadTimeDays} jours.
-              Un acompte de {money(PRICING.deposit)} confirmera la date une fois
-              votre demande acceptée.
-            </p>
-          </div>
-          </div>
           </motion.section>
         )}
 
@@ -477,52 +491,141 @@ export default function BookingFlow() {
                 onChange={(e) => setGuests(Number(e.target.value))}
                 className="mt-5 w-full accent-[#c9a25e]"
               />
+            </div>
+          </motion.section>
+        )}
 
-              <p className="mb-4 mt-8 font-sans text-[10px] uppercase tracking-[0.28em] text-gold">
-                Forfait
+        {/* ---------- Étape 3 : besoins, budget, provenance ---------- */}
+        {step === 2 && (
+          <motion.section
+            key="needs"
+            initial={{ opacity: 0, x: 24 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -24 }}
+            transition={{ duration: 0.45, ease }}
+            className="space-y-5"
+          >
+            <div className="rounded-2xl bg-surface/50 p-5 sm:p-7">
+              <p className="font-sans text-[10px] uppercase tracking-[0.28em] text-gold">
+                Que voulez-vous ?
               </p>
-              <div className="grid gap-2.5 sm:grid-cols-3">
-                {PACKAGES.map((p) => {
-                  const active = packageKey === p.key;
+              <p className="mt-3 font-sans text-[12px] font-light leading-[1.8] text-muted">
+                Plusieurs choix possibles. Rien n&apos;est définitif : c&apos;est
+                ce qui nous permet de vous proposer quelque chose de juste plutôt
+                qu&apos;un forfait tout fait.
+              </p>
+
+              <div className="mt-6 grid gap-2.5 sm:grid-cols-2">
+                {SERVICE_OPTIONS.map((o) => {
+                  const active = needs.includes(o.value);
                   return (
                     <button
-                      key={p.key}
-                      onClick={() => setPackageKey(p.key)}
-                      className={`rounded-2xl border p-4 text-left transition-all duration-500 ${
+                      key={o.value}
+                      onClick={() => toggleNeed(o.value)}
+                      className={`flex items-center gap-3 rounded-2xl border p-4 text-left transition-all duration-400 ${
                         active
                           ? "border-gold bg-gold/12"
                           : "border-fg/15 hover:border-gold/50"
                       }`}
                     >
-                      <span className="block font-sans text-[13px] text-fg">
-                        {p.name}
+                      <span className="text-[18px]">{o.emoji}</span>
+                      <span
+                        className={`font-sans text-[12px] leading-snug ${
+                          active ? "text-fg" : "text-muted"
+                        }`}
+                      >
+                        {o.label}
                       </span>
-                      <span className="mt-1 block font-sans text-[11px] font-light text-muted">
-                        dès {money(p.from)}
+                      <span
+                        className={`ml-auto flex h-4 w-4 shrink-0 items-center justify-center rounded-full border text-[9px] ${
+                          active
+                            ? "border-gold bg-gold text-night"
+                            : "border-fg/25 text-transparent"
+                        }`}
+                      >
+                        ✓
                       </span>
                     </button>
                   );
                 })}
               </div>
+            </div>
 
-              <div className="mt-8 rounded-2xl border border-gold/25 bg-gold/[0.06] p-5">
-                <p className="font-sans text-[10px] uppercase tracking-[0.24em] text-gold">
-                  Estimation indicative
-                </p>
-                <p className="engraved mt-2 text-[26px] text-fg">
-                  {money(estimate)}
-                </p>
-                <p className="mt-2 font-sans text-[11px] font-light leading-relaxed text-muted">
-                  Hors déplacement au-delà de {PRICING.freeRadiusKm} km. Le devis
-                  définitif vous est transmis avec notre réponse.
-                </p>
+            <div className="rounded-2xl bg-surface/50 p-5 sm:p-7">
+              <p className="font-sans text-[10px] uppercase tracking-[0.28em] text-gold">
+                Votre budget
+              </p>
+              <p className="mt-3 font-sans text-[12px] font-light leading-[1.8] text-muted">
+                Une fourchette suffit. Elle nous sert à calibrer la proposition,
+                pas à fixer le prix.
+              </p>
+              <div className="mt-6 flex flex-wrap gap-2.5">
+                {BUDGET_RANGES.map((b) => (
+                  <button
+                    key={b.value}
+                    onClick={() => setBudget(b.value)}
+                    className={`rounded-full border px-5 py-2.5 font-sans text-[11px] tracking-[0.06em] transition-all duration-400 ${
+                      budget === b.value
+                        ? "border-gold bg-gold/12 text-fg"
+                        : "border-fg/15 text-muted hover:border-gold/50"
+                    }`}
+                  >
+                    {b.label}
+                  </button>
+                ))}
               </div>
+            </div>
+
+            <div className="rounded-2xl bg-surface/50 p-5 sm:p-7">
+              <p className="font-sans text-[10px] uppercase tracking-[0.28em] text-gold">
+                Comment avez-vous entendu parler de nous ?
+              </p>
+              <div className="mt-6 flex flex-wrap gap-2.5">
+                {BOOKING_SOURCES.map((sopt) => (
+                  <button
+                    key={sopt.value}
+                    onClick={() => setSource(sopt.value)}
+                    className={`rounded-full border px-5 py-2.5 font-sans text-[11px] tracking-[0.06em] transition-all duration-400 ${
+                      source === sopt.value
+                        ? "border-gold bg-gold/12 text-fg"
+                        : "border-fg/15 text-muted hover:border-gold/50"
+                    }`}
+                  >
+                    {sopt.label}
+                  </button>
+                ))}
+              </div>
+
+              <AnimatePresence>
+                {source === "autre" && (
+                  <motion.div
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: "auto", opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    transition={{ duration: 0.4, ease }}
+                    className="overflow-hidden"
+                  >
+                    <label className="mt-6 block">
+                      <span className="mb-2 block font-sans text-[10px] uppercase tracking-[0.24em] text-gold">
+                        Précisez
+                      </span>
+                      <input
+                        type="text"
+                        value={sourceOther}
+                        onChange={(e) => setSourceOther(e.target.value)}
+                        placeholder="Où nous avez-vous découverts ?"
+                        className="field-luxe"
+                      />
+                    </label>
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
           </motion.section>
         )}
 
-        {/* ---------- Étape 3 : coordonnées ---------- */}
-        {step === 2 && (
+        {/* ---------- Étape 4 : coordonnées ---------- */}
+        {step === 3 && (
           <motion.section
             key="contact"
             initial={{ opacity: 0, x: 24 }}
@@ -584,8 +687,8 @@ export default function BookingFlow() {
           </motion.section>
         )}
 
-        {/* ---------- Étape 4 : récapitulatif ---------- */}
-        {step === 3 && (
+        {/* ---------- Étape 5 : récapitulatif ---------- */}
+        {step === 4 && (
           <motion.section
             key="recap"
             initial={{ opacity: 0, x: 24 }}
@@ -594,50 +697,76 @@ export default function BookingFlow() {
             transition={{ duration: 0.45, ease }}
             className="rounded-2xl bg-surface/50 p-5 sm:p-8"
           >
-            <p className="font-sans text-[10px] uppercase tracking-[0.28em] text-gold">
+            <p className="text-center font-sans text-[10px] uppercase tracking-[0.28em] text-gold">
               Récapitulatif
             </p>
 
-            <dl className="mt-7 space-y-4">
+            {/* Chaque groupe est un bloc posé, séparé par un filet dégradé.
+                Les lignes pleines découpaient la fiche en tranches. */}
+            <div className="mt-8 space-y-2">
               {[
-                ["Date", longDate(date)],
-                ["Horaires", `${startTime} → ${endTime}`],
-                [
-                  "Événement",
-                  eventType === "autre"
-                    ? eventTypeOther
-                    : EVENT_TYPES.find((t) => t.value === eventType)?.label ?? "",
-                ],
-                ["Invités", String(guests)],
-                ["Forfait", pkg.name],
-                ["Adresse", place.label],
-                ["Contact", `${name} · ${email} · ${phone}`],
-              ].map(([k, v]) => (
-                <div
-                  key={k}
-                  className="flex flex-wrap justify-between gap-x-6 gap-y-1 border-b border-fg/8 pb-3"
-                >
-                  <dt className="font-sans text-[10px] uppercase tracking-[0.2em] text-gold">
-                    {k}
-                  </dt>
-                  <dd className="max-w-md text-right font-sans text-[13px] font-light text-fg">
-                    {v}
-                  </dd>
+                {
+                  title: "La soirée",
+                  rows: [
+                    ["Date", longDate(date)],
+                    ["Horaires", `${startTime} → ${endTime}`],
+                    ["Événement", eventLabel],
+                    ["Invités", String(guests)],
+                  ],
+                },
+                {
+                  title: "Ce que vous voulez",
+                  rows: [
+                    ["Prestations", needLabels],
+                    ["Budget", BUDGET_RANGES.find((b) => b.value === budget)?.label ?? ""],
+                  ],
+                },
+                {
+                  title: "Vous",
+                  rows: [
+                    ["Contact", `${name} · ${email} · ${phone}`],
+                    ["Adresse", place.label],
+                    ...(addressNote ? [["Accès", addressNote]] : []),
+                    [
+                      "Nous a connus par",
+                      source === "autre"
+                        ? sourceOther
+                        : BOOKING_SOURCES.find((x) => x.value === source)?.label ?? "",
+                    ],
+                  ],
+                },
+              ].map((group, gi) => (
+                <div key={group.title}>
+                  {gi > 0 && <Divider />}
+                  <div className="rounded-2xl bg-fg/[0.03] p-5">
+                    <p className="font-sans text-[9px] uppercase tracking-[0.3em] text-gold/70">
+                      {group.title}
+                    </p>
+                    <dl className="mt-4 space-y-3.5">
+                      {group.rows.map(([k, v]) => (
+                        <div
+                          key={k}
+                          className="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-1"
+                        >
+                          <dt className="font-sans text-[10px] uppercase tracking-[0.18em] text-muted">
+                            {k}
+                          </dt>
+                          <dd className="max-w-md text-right font-sans text-[13px] font-light text-fg">
+                            {v}
+                          </dd>
+                        </div>
+                      ))}
+                    </dl>
+                  </div>
                 </div>
               ))}
-            </dl>
-
-            <div className="mt-8 flex items-baseline justify-between">
-              <span className="font-sans text-[12px] uppercase tracking-[0.2em] text-muted">
-                Estimation
-              </span>
-              <span className="engraved text-[26px] text-fg">{money(estimate)}</span>
             </div>
 
-            <p className="mt-7 rounded-2xl border border-fg/10 bg-fg/[0.02] p-5 font-sans text-[12px] font-light leading-[1.9] text-muted">
-              En envoyant cette demande, vous ne payez rien. Nous l&apos;étudions
-              et vous répondons sous 24 heures. Si elle est acceptée, un acompte
-              de {money(PRICING.deposit)} confirmera et bloquera la date.
+            <p className="mt-8 rounded-2xl border border-gold/25 bg-gold/[0.06] p-5 font-sans text-[12px] font-light leading-[1.9] text-muted">
+              Aucun prix à ce stade, et vous ne payez rien en envoyant cette
+              demande. Nous l&apos;étudions, puis nous vous adressons une
+              proposition chiffrée par courriel. Si elle vous convient, un
+              acompte de 50 % du devis bloquera la date.
             </p>
 
             {error && (
@@ -682,6 +811,8 @@ export default function BookingFlow() {
         <p className="mt-4 text-center font-sans text-[11px] font-light text-muted">
           {step === 0
             ? "Choisissez une date disponible pour continuer."
+            : step === 2
+            ? "Indiquez au moins une prestation, votre budget et comment vous nous avez connus."
             : "Complétez les champs requis pour continuer."}
         </p>
       )}

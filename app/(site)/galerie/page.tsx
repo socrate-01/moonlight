@@ -1,35 +1,29 @@
-import Image from "next/image";
 import Link from "next/link";
 import PageHeader from "@/components/site/PageHeader";
-import Lightbox, { type Shot } from "@/components/site/Lightbox";
+import GalleryGrid from "@/components/site/GalleryGrid";
+import GalleryPreview from "@/components/site/GalleryPreview";
 import Reveal from "@/components/Reveal";
-import { GALLERY, DRESSCODE } from "@/components/images";
+import { DRESSCODE } from "@/components/images";
+import { PRESENTATION } from "@/lib/site";
 
 export const metadata = {
   title: "Galerie · Moonlight Cocktail Bar",
   description:
-    "Nos créations en images et le souvenir de notre cérémonie de lancement.",
+    "Retour en images sur l'inauguration de Moonlight Cocktail Bar. Toutes les photos de la soirée, à voir et à télécharger.",
 };
 
-const shots: Shot[] = GALLERY.map((g) => ({ ...g }));
-
-/* ⚠️ À CONFIRMER — remplacer par les photos de la soirée du 8 août. En
-   attendant, les visuels du dress code tiennent la place. */
-const CEREMONIE: Shot[] = DRESSCODE.map((src, i) => ({
-  src,
-  w: 1200,
-  h: 1600,
-  caption: `Cérémonie de lancement · ${i + 1}`,
-}));
+/* Repli de la carte de tête, le temps que la galerie réponde et tant qu'elle
+   compte moins de trois photos. */
+const APERCU = DRESSCODE.slice(0, 3);
 
 export default function GaleriePage() {
   return (
     <>
       <PageHeader
         eyebrow="En images"
-        title="Ce que ça donne,"
-        accent="une fois servi"
-        lead="Nos créations, nos installations, et le souvenir de la soirée qui a tout lancé."
+        title="Retour"
+        accent="sur images"
+        lead="La soirée qui a tout lancé, photo par photo. Toutes sont libres de téléchargement."
       />
 
       {/* Revivez la cérémonie */}
@@ -68,45 +62,53 @@ export default function GaleriePage() {
                       </div>
                     ))}
                   </dl>
+
+                  <a
+                    href={PRESENTATION.url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="btn-ghost mt-9 inline-flex"
+                  >
+                    <svg
+                      viewBox="0 0 24 24"
+                      className="h-3.5 w-3.5"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="1.8"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      aria-hidden
+                    >
+                      <path d="M4 4h16v12H4z M9 20h6 M12 16v4" />
+                    </svg>
+                    {PRESENTATION.label}
+                  </a>
                 </div>
 
-                <div className="grid grid-cols-3 gap-3">
-                  {CEREMONIE.map((c, i) => (
-                    <div
-                      key={c.src}
-                      className={`relative overflow-hidden rounded-2xl ${
-                        i === 1 ? "aspect-[3/5] sm:-translate-y-5" : "aspect-[3/4]"
-                      }`}
-                    >
-                      <Image
-                        src={c.src}
-                        alt={c.caption || ""}
-                        fill
-                        sizes="(max-width: 1024px) 33vw, 18vw"
-                        className="object-cover transition-transform duration-[1.6s] hover:scale-110"
-                      />
-                    </div>
-                  ))}
-                </div>
+                <GalleryPreview album="inauguration" fallback={APERCU} />
               </div>
             </div>
           </Reveal>
         </div>
       </section>
 
-      {/* Mosaïque */}
+      {/* Mosaïque complète, alimentée depuis l'admin */}
       <section className="px-6 pb-24 lg:px-10">
         <div className="mx-auto max-w-6xl">
           <Reveal className="mb-14 text-center">
             <p className="font-sans text-[10px] uppercase tracking-[0.36em] text-gold">
-              Nos créations
+              Retour sur images
             </p>
             <h2 className="engraved mt-6 text-[24px] leading-tight text-fg sm:text-[30px]">
-              La carte, en photo
+              Inauguration de Moonlight Cocktail Bar
             </h2>
+            <p className="mx-auto mt-6 max-w-lg font-sans text-[13px] font-light leading-[1.9] text-muted">
+              Survolez une photo pour la télécharger, ou ouvrez-la en grand.
+              Les images se chargent par vingt.
+            </p>
           </Reveal>
 
-          <Lightbox shots={shots} />
+          <GalleryGrid album="inauguration" />
         </div>
       </section>
 

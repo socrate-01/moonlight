@@ -54,8 +54,9 @@ export default function ContactPage() {
                 </p>
                 <p className="mt-3 font-sans text-[14px] font-light leading-[1.9] text-muted">
                   Nos prestations démarrent à{" "}
-                  <span className="text-fg">{money(PRICING.startingAt)}</span>. Un
-                  acompte de {money(PRICING.deposit)} confirme et bloque la date.
+                  <span className="text-fg">{money(PRICING.startingAt)}</span>.
+                  Nous étudions votre demande et vous envoyons un devis ; un
+                  acompte de 50 % confirme ensuite la date.
                 </p>
               </div>
 

@@ -16,7 +16,7 @@ export default function ReservationPage() {
         eyebrow="Réservation"
         title="Bloquons"
         accent="votre date"
-        lead={`Prestations à partir de ${money(PRICING.startingAt)}. Réponse sous 24 heures, acompte de ${money(PRICING.deposit)} à la confirmation.`}
+        lead="Dites-nous ce que vous voulez et votre budget. Nous étudions votre demande à la main et vous revenons par courriel avec une proposition chiffrée."
       />
 
       <section className="px-6 pb-28 lg:px-10">
@@ -27,7 +27,7 @@ export default function ReservationPage() {
         <Reveal className="mx-auto grid max-w-4xl gap-5 sm:grid-cols-3">
           {[
             ["24 h", "Délai de réponse", "Chaque demande est étudiée à la main, jamais automatiquement."],
-            [money(PRICING.deposit), "Acompte", "Il confirme la date, la retire du calendrier et se déduit du total."],
+            ["50 %", "Acompte", "Une part du devis accepté, jamais un montant fixe. Il bloque la date et se déduit du total."],
             [`${PRICING.freeRadiusKm} km`, "Déplacement inclus", "Au-delà, un forfait vous est communiqué avant confirmation."],
           ].map(([big, label, body]) => (
             <div key={label} className="rounded-2xl bg-surface/50 p-7 text-center">

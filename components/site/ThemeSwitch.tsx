@@ -3,9 +3,10 @@
 import { useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
 
-/** Couleurs de fond des deux thèmes (--bg de globals.css). Le calque doit
- *  arriver dans la couleur de destination, sinon on voit un flash. */
-const BG = { dark: "rgb(9,11,30)", light: "rgb(241,239,230)" };
+/** Durée du geste. Le bouton et le balayage la partagent pour qu'on lise un
+ *  seul mouvement et non deux animations côte à côte. */
+const DURATION = 560;
+const EASE = "cubic-bezier(0.22, 1, 0.36, 1)";
 
 export default function ThemeSwitch({ light = false }: { light?: boolean }) {
   const ref = useRef<HTMLButtonElement>(null);
@@ -28,23 +29,33 @@ export default function ThemeSwitch({ light = false }: { light?: boolean }) {
   };
 
   const toggle = () => {
-    if (busy.current) return; // un double clic pendant l'animation la casserait
+    if (busy.current) return; // un second clic pendant le geste le casserait
     const next = !dark;
-    setDark(next);
+    setDark(next); // la molette part tout de suite : le bouton reste vif
 
     const root = document.documentElement;
     const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    const r = ref.current?.getBoundingClientRect();
+    const box = ref.current?.getBoundingClientRect();
 
-    if (reduce || !r || typeof document.body.animate !== "function") {
+    // Mouvement réduit demandé, ou position du bouton inconnue : on bascule
+    // sans mise en scène.
+    if (reduce || !box) {
       apply(next);
       return;
     }
 
-    const cx = r.left + r.width / 2;
-    const cy = r.top + r.height / 2;
+    // Repli sans View Transitions : le body porte déjà un fondu de couleurs,
+    // il suffit de ne pas le neutraliser. Pas de cercle, mais rien ne saute.
+    if (typeof document.startViewTransition !== "function") {
+      apply(next);
+      return;
+    }
+
+    const cx = box.left + box.width / 2;
+    const cy = box.top + box.height / 2;
     const { innerWidth: w, innerHeight: h } = window;
-    // Rayon nécessaire pour couvrir le coin le plus éloigné du bouton.
+    // Rayon nécessaire pour atteindre le coin le plus éloigné du bouton :
+    // sans cela, le cercle s'arrêterait avant d'avoir tout couvert.
     const radius = Math.max(
       Math.hypot(cx, cy),
       Math.hypot(w - cx, cy),
@@ -55,27 +66,33 @@ export default function ThemeSwitch({ light = false }: { light?: boolean }) {
     busy.current = true;
     root.classList.add("theme-swapping");
 
-    // Le thème bascule tout de suite : l'attente venait de ce qu'il était
-    // appliqué en fin d'animation. Le calque n'est plus qu'une onde décorative
-    // qui passe par-dessus une page déjà changée.
-    apply(next);
+    const transition = document.startViewTransition(() => apply(next));
 
-    const layer = document.createElement("div");
-    layer.className = "theme-sweep-layer";
-    layer.style.background = next ? BG.dark : BG.light;
-    document.body.appendChild(layer);
+    transition.ready
+      .then(() => {
+        // On anime la capture de la NOUVELLE page, posée au-dessus de
+        // l'ancienne. Le cercle dévoile donc la vraie page, pas un aplat.
+        root.animate(
+          {
+            clipPath: [
+              `circle(0px at ${cx}px ${cy}px)`,
+              `circle(${radius}px at ${cx}px ${cy}px)`,
+            ],
+          },
+          {
+            duration: DURATION,
+            easing: EASE,
+            pseudoElement: "::view-transition-new(root)",
+          }
+        );
+      })
+      .catch(() => {
+        /* transition interrompue : le thème est déjà appliqué, rien à faire */
+      });
 
-    layer
-      .animate(
-        [
-          { clipPath: `circle(0px at ${cx}px ${cy}px)`, opacity: 0.9 },
-          { clipPath: `circle(${radius}px at ${cx}px ${cy}px)`, opacity: 0 },
-        ],
-        { duration: 520, easing: "cubic-bezier(0.22, 1, 0.36, 1)", fill: "forwards" }
-      )
-      .finished.catch(() => {})
+    transition.finished
+      .catch(() => {})
       .finally(() => {
-        layer.remove();
         root.classList.remove("theme-swapping");
         busy.current = false;
       });
@@ -98,7 +115,7 @@ export default function ThemeSwitch({ light = false }: { light?: boolean }) {
         animate={{ x: mounted && dark ? 28 : 0 }}
         /* Calé sur la durée du balayage pour que bouton et fond ne fassent
            qu'un seul geste. */
-        transition={{ duration: 0.42, ease: [0.22, 1, 0.36, 1] }}
+        transition={{ duration: DURATION / 1000, ease: [0.22, 1, 0.36, 1] }}
       >
         {dark ? (
           <svg viewBox="0 0 24 24" className="h-3.5 w-3.5" fill="currentColor">

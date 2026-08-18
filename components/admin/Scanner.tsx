@@ -1,9 +1,9 @@
 "use client";
 
-import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import type { Html5Qrcode } from "html5-qrcode";
 import { getReservation, setPresent, type Reservation } from "@/lib/reservations";
+import AdminShell from "@/components/admin/AdminShell";
 
 type Result =
   | { kind: "found"; data: Reservation }
@@ -94,22 +94,8 @@ export default function Scanner() {
   };
 
   return (
-    <div className="min-h-screen bg-bg">
-      <header className="border-b border-fg/10">
-        <div className="mx-auto flex max-w-lg items-center justify-between px-6 py-4">
-          <span className="font-display text-lg tracking-[0.14em] text-fg">
-            MOONLIGHT · Scan
-          </span>
-          <Link
-            href="/admin"
-            className="rounded-full border border-fg/25 px-4 py-2 font-sans text-[11px] uppercase tracking-wide2 text-fg transition hover:bg-fg hover:text-bg"
-          >
-            Tableau de bord
-          </Link>
-        </div>
-      </header>
-
-      <main className="mx-auto max-w-lg px-6 py-10">
+    <AdminShell title="Scanner">
+      <div className="mx-auto max-w-lg">
         {scanning && (
           <div>
             <p className="mb-4 text-center font-sans text-[12px] uppercase tracking-luxe text-gold">
@@ -196,7 +182,7 @@ export default function Scanner() {
             </div>
           </div>
         )}
-      </main>
-    </div>
+      </div>
+    </AdminShell>
   );
 }

@@ -6,7 +6,7 @@ import Newsletter from "@/components/site/Newsletter";
 import GlassDetail from "@/components/site/GlassDetail";
 import Social from "@/components/site/Social";
 import { GALLERY } from "@/components/images";
-import { ACTIVITIES, COCKTAILS, money } from "@/lib/site";
+import { ACTIVITIES, COCKTAILS } from "@/lib/site";
 
 export const metadata = {
   title: "Moonlight Cocktail Bar · Bar à cocktails mobile à Montréal",
@@ -181,8 +181,8 @@ export default function Home() {
                     <h3 className="engraved text-[15px] text-fg transition-colors duration-500 group-hover:text-gold">
                       {c.name}
                     </h3>
-                    <span className="shrink-0 font-sans text-[13px] tabular-nums text-gold">
-                      {money(c.price)}
+                    <span className="shrink-0 font-sans text-[9px] uppercase tracking-[0.2em] text-gold/70">
+                      {c.family}
                     </span>
                   </div>
                 </Link>

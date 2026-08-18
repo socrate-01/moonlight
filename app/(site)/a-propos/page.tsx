@@ -30,9 +30,9 @@ const BELIEFS = [
   },
   {
     n: "03",
-    title: "Personne ne reste sur le côté",
+    title: "Avec ou sans alcool, vous choisissez",
     body:
-      "Celui qui ne boit pas mérite mieux qu'un jus tiède. Chaque carte comprend des créations sans alcool travaillées avec la même exigence, servies dans le même verre.",
+      "Nous servons les deux, et c'est vous qui décidez : une carte entièrement sans alcool, une carte alcoolisée, ou les deux côte à côte sur le même bar. Aucune des deux n'est une version diminuée de l'autre — même travail, mêmes ingrédients frais, mêmes verres.",
   },
   {
     n: "04",
@@ -164,12 +164,18 @@ export default function AProposPage() {
             Dites-nous la date, le lieu et le nombre d&apos;invités. Nous revenons
             vers vous sous 24 heures avec une proposition.
           </p>
-          <div className="mt-10 flex flex-wrap items-center justify-center gap-4">
+          {/* Le bouton principal occupe sa propre ligne : accolé au second, le
+              couple était centré mais « Demander une date » tombait à gauche de
+              l'axe. Seul, il est vraiment au milieu. */}
+          <div className="mt-10 flex flex-col items-center gap-5">
             <Link href="/reservation" className="btn-luxe">
               Demander une date
             </Link>
-            <a href={`mailto:${SITE.email}`} className="btn-ghost">
-              Nous écrire
+            <a
+              href={`mailto:${SITE.email}`}
+              className="font-sans text-[11px] uppercase tracking-[0.22em] text-muted underline-offset-4 transition-colors duration-500 hover:text-gold hover:underline"
+            >
+              ou nous écrire
             </a>
           </div>
         </Reveal>

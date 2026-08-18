@@ -1,17 +1,34 @@
 "use client";
 
 import Image from "next/image";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { COCKTAILS, COCKTAIL_FAMILIES, money } from "@/lib/site";
+import { COCKTAIL_FAMILIES, COCKTAILS, type Cocktail } from "@/lib/site";
+import { listCocktails, mergeCocktails } from "@/lib/cocktails";
 
 const ease = [0.22, 1, 0.36, 1] as const;
 type Filter = "Tous" | (typeof COCKTAIL_FAMILIES)[number];
 
+/** La carte, sans prix.
+ *
+ *  Les tarifs dépendent de la formule retenue et du nombre d'invités : les
+ *  afficher à la fiche laissait croire à un prix au verre, qui n'existe pas.
+ *  La famille prend leur place — c'est elle qui aide à choisir. */
 export default function CocktailGrid() {
+  // La carte de référence s'affiche immédiatement, puis les fiches saisies
+  // depuis l'admin la complètent. La page n'est donc jamais vide, même hors
+  // ligne ou avant la première saisie.
+  const [cocktails, setCocktails] = useState<Cocktail[]>(COCKTAILS);
   const [filter, setFilter] = useState<Filter>("Tous");
+
+  useEffect(() => {
+    listCocktails()
+      .then((db) => setCocktails(mergeCocktails(db)))
+      .catch(() => {});
+  }, []);
+
   const shown =
-    filter === "Tous" ? COCKTAILS : COCKTAILS.filter((c) => c.family === filter);
+    filter === "Tous" ? cocktails : cocktails.filter((c) => c.family === filter);
 
   return (
     <div>
@@ -54,7 +71,6 @@ export default function CocktailGrid() {
                   sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
                   className="object-cover transition-transform duration-[1.5s] ease-out group-hover:scale-110"
                 />
-                {/* Voile qui se lève au survol pour révéler la photo */}
                 <div className="absolute inset-0 bg-gradient-to-t from-night via-night/25 to-transparent opacity-90 transition-opacity duration-700 group-hover:opacity-60" />
                 <span className="absolute left-4 top-4 rounded-full border border-white/25 bg-black/25 px-3 py-1 font-sans text-[9px] uppercase tracking-[0.2em] text-white/85 backdrop-blur-md">
                   {c.family}
@@ -62,14 +78,9 @@ export default function CocktailGrid() {
               </div>
 
               <div className="p-6">
-                <div className="flex items-baseline justify-between gap-4">
-                  <h3 className="engraved text-[17px] leading-tight text-fg">
-                    {c.name}
-                  </h3>
-                  <span className="shrink-0 font-sans text-[14px] tabular-nums text-gold">
-                    {money(c.price)}
-                  </span>
-                </div>
+                <h3 className="engraved text-[17px] leading-tight text-fg">
+                  {c.name}
+                </h3>
                 <p className="mt-3 font-sans text-[13px] font-light leading-[1.9] text-muted">
                   {c.description}
                 </p>

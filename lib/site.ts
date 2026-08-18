@@ -8,10 +8,10 @@
 export const SITE = {
   name: "Moonlight Cocktail Bar",
   tagline: "Bar à cocktails mobile · Montréal",
-  email: "contact@moonlight.bar",
+  email: "contact@moonlight-cocktailbar.ca",
   phone: "", // À CONFIRMER
   city: "Montréal, Québec",
-  baseUrl: "https://moonlight-cocktail-bar.vercel.app",
+  baseUrl: "https://moonlight-cocktailbar.ca",
 };
 
 /** Liens des réseaux — à remplacer par les vrais profils. */
@@ -37,8 +37,12 @@ export const NAV_LINKS = [
 export const PRICING = {
   /** Prix plancher affiché publiquement. */
   startingAt: 1000,
-  /** Acompte exigé à la confirmation. */
-  deposit: 500,
+  /** Part du devis exigée à la confirmation.
+   *
+   *  Anciennement un montant fixe de 500 $. Un acompte proportionnel suit la
+   *  taille réelle de la prestation : sur un petit événement, 500 $ était
+   *  presque le total ; sur un gros, il n'engageait à rien. */
+  depositRate: 0.5,
   currency: "CAD",
   /** Rayon inclus sans supplément, puis tarif au kilomètre. À CONFIRMER. */
   freeRadiusKm: 25,
@@ -113,15 +117,91 @@ export const EVENT_TYPES = [
   { value: "autre", label: "Autre", emoji: "✨" },
 ] as const;
 
+/** Cycle de vie d'une demande.
+ *
+ *  La demande arrive sans prix : le client dit ce qu'il veut et son budget,
+ *  nous étudions, puis nous envoyons un devis. Rien n'est chiffré côté public
+ *  avant cette étape. */
 export const BOOKING_STATUSES = {
-  pending: { label: "En attente", tone: "gold" },
+  pending: { label: "À étudier", tone: "gold" },
+  quoted: { label: "Devis envoyé", tone: "gold" },
+  confirmed: { label: "Proposition acceptée", tone: "emerald" },
+  deposit_paid: { label: "Acompte réglé", tone: "emerald" },
   accepted: { label: "Acceptée", tone: "emerald" },
   declined: { label: "Refusée", tone: "terracotta" },
-  deposit_paid: { label: "Acompte réglé", tone: "emerald" },
   completed: { label: "Terminée", tone: "muted" },
 } as const;
 
 export type BookingStatus = keyof typeof BOOKING_STATUSES;
+
+/** Statuts qui retirent la date du calendrier public. */
+export const BLOCKING_STATUSES: BookingStatus[] = [
+  "accepted",
+  "confirmed",
+  "deposit_paid",
+];
+
+/* ------------------------------------------------------------------ */
+/* Questionnaire de demande                                            */
+/* ------------------------------------------------------------------ */
+
+/** « Comment avez-vous entendu parler de nous ? »
+ *
+ *  La seule question du formulaire qui ne sert pas à préparer l'événement :
+ *  elle dit où placer les efforts. « Autre » ouvre un champ libre plutôt que
+ *  d'obliger à se ranger dans une case fausse. */
+export const BOOKING_SOURCES = [
+  { value: "instagram", label: "Instagram" },
+  { value: "tiktok", label: "TikTok" },
+  { value: "facebook", label: "Facebook" },
+  { value: "bouche-a-oreille", label: "Bouche-à-oreille" },
+  { value: "un-evenement", label: "Vu à un événement" },
+  { value: "recherche-google", label: "Recherche Google" },
+  { value: "ami-famille", label: "Un ami ou la famille" },
+  { value: "collegue", label: "Un collègue" },
+  { value: "prestataire", label: "Un autre prestataire" },
+  { value: "affiche-flyer", label: "Affiche ou carton" },
+  { value: "presse", label: "Presse ou blogue" },
+  { value: "autre", label: "Autre" },
+] as const;
+
+/** Ce que la personne veut — remplace le choix d'un forfait.
+ *
+ *  Un forfait engage un prix avant même que nous ayons lu la demande. Une
+ *  liste de besoins dit ce qu'il faut préparer, et laisse le chiffrage au
+ *  devis. Choix multiple : personne n'a un seul besoin. */
+export const SERVICE_OPTIONS = [
+  { value: "bar-complet", label: "Bar complet monté sur place", emoji: "🍸" },
+  { value: "barman", label: "Barman(s) en service", emoji: "🤵" },
+  { value: "cocktails-signature", label: "Cocktails créés pour vous", emoji: "✨" },
+  { value: "sans-alcool", label: "Carte sans alcool", emoji: "🍹" },
+  { value: "avec-alcool", label: "Carte alcoolisée", emoji: "🥃" },
+  { value: "cocktail-accueil", label: "Cocktail d'accueil", emoji: "🥂" },
+  { value: "verrerie", label: "Verrerie et glace", emoji: "🧊" },
+  { value: "degustation", label: "Atelier ou dégustation", emoji: "👐" },
+  { value: "flair", label: "Animation / flair bartending", emoji: "🔥" },
+  { value: "decor", label: "Décor et bar lumineux", emoji: "💡" },
+  { value: "service-table", label: "Service à table", emoji: "🍽️" },
+  { value: "conseil", label: "Je ne sais pas encore, conseillez-moi", emoji: "💬" },
+] as const;
+
+/** Fourchettes de budget. La dernière laisse la porte ouverte : quelqu'un qui
+ *  n'a pas de chiffre en tête ne doit pas abandonner le formulaire. */
+export const BUDGET_RANGES = [
+  { value: "moins-1000", label: "Moins de 1 000 $" },
+  { value: "1000-2000", label: "1 000 $ – 2 000 $" },
+  { value: "2000-3500", label: "2 000 $ – 3 500 $" },
+  { value: "3500-5000", label: "3 500 $ – 5 000 $" },
+  { value: "5000-plus", label: "Plus de 5 000 $" },
+  { value: "a-definir", label: "À définir avec vous" },
+] as const;
+
+/** Présentation officielle proposée au téléchargement depuis la galerie.
+ *  Déposer le fichier dans public/ sous ce nom pour que le bouton s'affiche. */
+export const PRESENTATION = {
+  url: "/presentation-moonlight.pdf",
+  label: "Voir la présentation officielle",
+};
 
 /* ------------------------------------------------------------------ */
 /* Activités                                                           */
@@ -153,13 +233,12 @@ export const ACTIVITIES = [
 ];
 
 /* ------------------------------------------------------------------ */
-/* Cocktails — À CONFIRMER (noms, prix et descriptions provisoires)     */
+/* Cocktails — À CONFIRMER (noms et descriptions provisoires)          */
 /* ------------------------------------------------------------------ */
 
 export type Cocktail = {
   slug: string;
   name: string;
-  price: number;
   family: "Signature" | "Classique" | "Sans alcool";
   description: string;
   image: string;
@@ -171,7 +250,6 @@ export const COCKTAILS: Cocktail[] = [
   {
     slug: "clair-de-lune",
     name: "Clair de Lune",
-    price: 16,
     family: "Signature",
     description:
       "Gin infusé à la fleur de sureau, citron vert, blanc d'œuf et une brume de lavande. Notre signature, celle par laquelle tout a commencé.",
@@ -182,7 +260,6 @@ export const COCKTAILS: Cocktail[] = [
   {
     slug: "braise",
     name: "Braise",
-    price: 17,
     family: "Signature",
     description:
       "Mezcal, piment doux, mangue et jus de lime. Fumé en entrée, chaleureux en sortie.",
@@ -193,7 +270,6 @@ export const COCKTAILS: Cocktail[] = [
   {
     slug: "velours-noir",
     name: "Velours Noir",
-    price: 18,
     family: "Signature",
     description:
       "Rhum vieux, café froid, cacao et vanille bourbon. Un dessert qui se boit.",
@@ -204,7 +280,6 @@ export const COCKTAILS: Cocktail[] = [
   {
     slug: "jardin-secret",
     name: "Jardin Secret",
-    price: 16,
     family: "Signature",
     description:
       "Vodka, concombre, basilic et citron. Vif, végétal, désaltérant jusqu'à la dernière gorgée.",
@@ -215,7 +290,6 @@ export const COCKTAILS: Cocktail[] = [
   {
     slug: "vieux-carre",
     name: "Vieux Carré",
-    price: 17,
     family: "Classique",
     description:
       "Whisky de seigle, cognac, vermouth rouge et bénédictine. La Nouvelle-Orléans, sans le billet d'avion.",
@@ -226,7 +300,6 @@ export const COCKTAILS: Cocktail[] = [
   {
     slug: "negroni-maison",
     name: "Negroni Maison",
-    price: 15,
     family: "Classique",
     description:
       "Gin, campari et vermouth, reposés en fût quatre semaines. Amer, rond, sans concession.",
@@ -237,7 +310,6 @@ export const COCKTAILS: Cocktail[] = [
   {
     slug: "aurore",
     name: "Aurore",
-    price: 12,
     family: "Sans alcool",
     description:
       "Pamplemousse rose, hibiscus, romarin et eau pétillante. Toute la fête, aucun lendemain.",
@@ -248,7 +320,6 @@ export const COCKTAILS: Cocktail[] = [
   {
     slug: "brume",
     name: "Brume",
-    price: 12,
     family: "Sans alcool",
     description:
       "Thé vert glacé, poire, menthe et citron vert. Léger, presque transparent.",
@@ -267,7 +338,7 @@ export const COCKTAIL_FAMILIES = ["Signature", "Classique", "Sans alcool"] as co
 export const FAQ = [
   {
     q: "Quel est le délai pour réserver ?",
-    a: "Chaque demande est étudiée sous 24 heures. Nous conseillons de réserver au moins quatre semaines à l'avance, davantage pour un mariage en haute saison.",
+    a: "Chaque demande est étudiée sous 24 heures. Nous conseillons de réserver au moins deux semaines à l'avance, davantage pour un mariage en haute saison.",
   },
   {
     q: "Quelle zone couvrez-vous ?",
@@ -279,7 +350,7 @@ export const FAQ = [
   },
   {
     q: "Comment fonctionne l'acompte ?",
-    a: `Un acompte de ${money(PRICING.deposit)} confirme la date et la retire du calendrier. Il se déduit du montant final.`,
+    a: "Après étude de votre demande, nous vous envoyons un devis par courriel. Une fois que vous l'acceptez, un acompte de 50 % du devis confirme la date et la retire du calendrier. Il se déduit du montant final.",
   },
   {
     q: "Puis-je annuler ?",
@@ -287,6 +358,6 @@ export const FAQ = [
   },
   {
     q: "Proposez-vous des options sans alcool ?",
-    a: "Oui. Chaque carte comprend des mocktails travaillés avec le même soin que le reste, pour que personne ne se contente d'un jus.",
+    a: "Oui. Nous servons avec et sans alcool, selon ce que vous voulez : une carte entièrement sans alcool, entièrement alcoolisée, ou les deux côte à côte. Les créations sans alcool sont travaillées avec la même exigence que le reste.",
   },
 ];

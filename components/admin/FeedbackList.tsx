@@ -1,11 +1,10 @@
 "use client";
 
-import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { collection, onSnapshot } from "firebase/firestore";
-import { signOut } from "firebase/auth";
 import { motion } from "framer-motion";
-import { auth, db } from "@/lib/firebase";
+import { db } from "@/lib/firebase";
+import AdminShell from "@/components/admin/AdminShell";
 import {
   deleteFeedback,
   DRESS_CODE_SCALE,
@@ -110,55 +109,18 @@ export default function FeedbackList() {
   };
 
   return (
-    <div className="theme-prestige relative min-h-screen overflow-hidden bg-bg">
-      <div className="aurora" aria-hidden>
-        <span />
-        <span />
-        <span />
-      </div>
+    <AdminShell title="Avis">
+      {/* L'habillage « prestige » et ses halos restent propres à cet écran ;
+          ils vivent maintenant dans le contenu plutôt qu'autour de la page. */}
+      <div className="theme-prestige relative -mx-5 -my-8 overflow-hidden px-5 py-8 sm:-mx-8 sm:px-8">
+        <div className="aurora" aria-hidden>
+          <span />
+          <span />
+          <span />
+        </div>
 
-      <div className="relative z-10">
-        <header className="sticky top-0 z-20 border-b border-fg/8 bg-bg/70 backdrop-blur-2xl">
-          <div className="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-3 px-6 py-4">
-            {/* retour explicite vers le tableau de bord */}
-            <Link
-              href="/admin"
-              className="group flex items-center gap-2.5 rounded-full border border-fg/20 py-2 pl-3 pr-5 font-sans text-[11px] uppercase tracking-[0.2em] text-fg transition-all duration-500 hover:border-gold hover:text-gold"
-            >
-              <svg
-                viewBox="0 0 24 24"
-                className="h-3.5 w-3.5 transition-transform duration-500 group-hover:-translate-x-1"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="1.8"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <path d="M15 18l-6-6 6-6" />
-              </svg>
-              Retour
-            </Link>
-
-            <span className="engraved text-[14px] text-fg">Avis</span>
-
-            <div className="flex items-center gap-2">
-              <Link
-                href="/admin/scan"
-                className="rounded-full border border-fg/20 px-4 py-2 font-sans text-[11px] uppercase tracking-[0.2em] text-fg transition-all duration-500 hover:border-gold hover:text-gold"
-              >
-                Scanner
-              </Link>
-              <button
-                onClick={() => signOut(auth)}
-                className="rounded-full border border-fg/20 px-4 py-2 font-sans text-[11px] uppercase tracking-[0.2em] text-fg transition-all duration-500 hover:border-terracotta hover:text-terracotta"
-              >
-                Quitter
-              </button>
-            </div>
-          </div>
-        </header>
-
-        <main className="mx-auto max-w-5xl px-6 pb-24 pt-10">
+        <div className="relative z-10">
+          <div className="mx-auto max-w-5xl pb-16">
           <div className="mb-9 flex items-baseline gap-3">
             <span className="engraved text-[34px] text-fg">{items.length}</span>
             <span className="font-sans text-[11px] uppercase tracking-[0.24em] text-muted">
@@ -348,8 +310,9 @@ export default function FeedbackList() {
               );
             })}
           </div>
-        </main>
+        </div>
       </div>
     </div>
+    </AdminShell>
   );
 }

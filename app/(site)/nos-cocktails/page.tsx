@@ -34,9 +34,10 @@ export default function CocktailsPage() {
             Votre cocktail, à votre nom
           </h2>
           <p className="mx-auto mt-6 max-w-xl font-sans text-[14px] font-light leading-[2] text-muted">
-            Pour les formules Signature et Prestige, nous créons avec vous des
+            Dites-le nous dans votre demande et nous créons avec vous des
             cocktails qui n&apos;existent que pour votre soirée : vos goûts, vos
-            couleurs, et le nom que vous choisissez.
+            couleurs, et le nom que vous choisissez. Avec ou sans alcool, comme
+            vous préférez.
           </p>
           <Link href="/reservation" className="btn-luxe mt-9 inline-block">
             Composer ma carte

@@ -1,9 +1,8 @@
 "use client";
 
-import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { signOut } from "firebase/auth";
 import { auth } from "@/lib/firebase";
+import AdminShell from "@/components/admin/AdminShell";
 import {
   backfillNewsletterTokens,
   deleteMailingContact,
@@ -205,40 +204,15 @@ export default function MailingConsole() {
   const ready = subject.trim().length > 0 && body.trim().length > 0;
 
   return (
-    <div className="min-h-screen bg-bg">
-      <header className="sticky top-0 z-10 border-b border-fg/10 bg-bg/80 backdrop-blur-xl">
-        <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 px-6 py-4">
-          <div>
-            <span className="font-display text-xl tracking-[0.14em] text-fg">MOONLIGHT</span>
-            <span className="ml-3 font-sans text-[10px] uppercase tracking-luxe text-gold">
-              Mailing
-            </span>
-          </div>
-          <div className="flex items-center gap-3">
-            <Link
-              href="/admin"
-              className="rounded-full border border-fg/25 px-4 py-2 font-sans text-[11px] uppercase tracking-wide2 text-fg transition hover:bg-fg hover:text-bg"
-            >
-              Réservations
-            </Link>
-            <button
-              onClick={() => signOut(auth)}
-              className="rounded-full border border-fg/25 px-4 py-2 font-sans text-[11px] uppercase tracking-wide2 text-fg transition hover:bg-fg hover:text-bg"
-            >
-              Déconnexion
-            </button>
-          </div>
-        </div>
-      </header>
-
+    <AdminShell title="Mailing">
       {config && !config.configured && (
-        <div className="border-b border-gold/30 bg-gold/10 px-6 py-3 text-center font-sans text-[12px] text-fg">
+        <div className="mb-8 rounded-2xl border border-gold/30 bg-gold/10 px-6 py-3 text-center font-sans text-[12px] text-fg">
           Aucune clé Resend configurée — les envois sont simulés et journalisés
           côté serveur. Tout le parcours reste testable.
         </div>
       )}
 
-      <main className="mx-auto grid max-w-6xl gap-8 px-6 py-10 lg:grid-cols-[0.9fr_1.1fr]">
+      <div className="mx-auto grid max-w-6xl gap-8 lg:grid-cols-[0.9fr_1.1fr]">
         {/* ---------------- Colonne gauche : le carnet ---------------- */}
         <section className="space-y-6">
           <AddContacts />
@@ -516,7 +490,7 @@ export default function MailingConsole() {
             )}
           </div>
         </section>
-      </main>
-    </div>
+      </div>
+    </AdminShell>
   );
 }

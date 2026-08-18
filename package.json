@@ -9,6 +9,7 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@vercel/blob": "^2.8.0",
     "firebase": "^12.16.0",
     "framer-motion": "^11.3.19",
     "html5-qrcode": "^2.3.8",

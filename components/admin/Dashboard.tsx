@@ -1,10 +1,9 @@
 "use client";
 
-import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { collection, onSnapshot, orderBy, query } from "firebase/firestore";
-import { signOut } from "firebase/auth";
-import { auth, db } from "@/lib/firebase";
+import { db } from "@/lib/firebase";
+import AdminShell from "@/components/admin/AdminShell";
 import { deleteReservation, setPresent, type Reservation } from "@/lib/reservations";
 import { countAttendees, syncAttendees, TEST_EMAILS } from "@/lib/attendees";
 
@@ -183,65 +182,33 @@ export default function Dashboard() {
   };
 
   return (
-    <div className="min-h-screen bg-bg">
-      {/* header */}
-      <header className="sticky top-0 z-10 border-b border-fg/10 bg-bg/80 backdrop-blur-xl">
-        <div className="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-3 px-6 py-4">
-          <div>
-            <span className="font-display text-xl tracking-[0.14em] text-fg">MOONLIGHT</span>
-            <span className="ml-3 font-sans text-[10px] uppercase tracking-luxe text-gold">
-              Admin
-            </span>
-          </div>
-          <div className="flex items-center gap-3">
-            <button
-              onClick={exportCsv}
-              disabled={items.length === 0}
-              title="Télécharger la liste complète au format CSV"
-              className="flex items-center gap-2 rounded-full border border-fg/25 px-4 py-2 font-sans text-[11px] uppercase tracking-wide2 text-fg transition hover:bg-fg hover:text-bg disabled:opacity-40 disabled:hover:bg-transparent disabled:hover:text-fg"
-            >
-              <svg
-                viewBox="0 0 24 24"
-                className="h-3.5 w-3.5"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="1.8"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <path d="M12 3v12m0 0 4-4m-4 4-4-4M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2" />
-              </svg>
-              Exporter · {items.length}
-            </button>
-            <Link
-              href="/admin/mailing"
-              className="rounded-full border border-fg/25 px-4 py-2 font-sans text-[11px] uppercase tracking-wide2 text-fg transition hover:bg-fg hover:text-bg"
-            >
-              Mailing
-            </Link>
-            <Link
-              href="/admin/feedback"
-              className="rounded-full border border-fg/25 px-4 py-2 font-sans text-[11px] uppercase tracking-wide2 text-fg transition hover:bg-fg hover:text-bg"
-            >
-              Avis
-            </Link>
-            <Link
-              href="/admin/scan"
-              className="rounded-full border border-gold/50 px-4 py-2 font-sans text-[11px] uppercase tracking-wide2 text-gold transition hover:bg-gold hover:text-night"
-            >
-              Scanner
-            </Link>
-            <button
-              onClick={() => signOut(auth)}
-              className="rounded-full border border-fg/25 px-4 py-2 font-sans text-[11px] uppercase tracking-wide2 text-fg transition hover:bg-fg hover:text-bg"
-            >
-              Déconnexion
-            </button>
-          </div>
-        </div>
-      </header>
-
-      <main className="mx-auto max-w-5xl px-6 py-10">
+    <AdminShell
+      title="Réservations"
+      /* La navigation est passée dans le menu latéral ; seule l'action propre
+         à cet écran reste en haut de page. */
+      actions={
+        <button
+          onClick={exportCsv}
+          disabled={items.length === 0}
+          title="Télécharger la liste complète au format CSV"
+          className="flex items-center gap-2 rounded-full border border-fg/25 px-4 py-2 font-sans text-[11px] uppercase tracking-wide2 text-fg transition hover:bg-fg hover:text-bg disabled:opacity-40 disabled:hover:bg-transparent disabled:hover:text-fg"
+        >
+          <svg
+            viewBox="0 0 24 24"
+            className="h-3.5 w-3.5"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.8"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <path d="M12 3v12m0 0 4-4m-4 4-4-4M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2" />
+          </svg>
+          Exporter · {items.length}
+        </button>
+      }
+    >
+      <div className="mx-auto max-w-5xl">
         {/* tabs + counts */}
         <div className="mb-6 flex flex-wrap items-center gap-3">
           <button
@@ -405,7 +372,7 @@ export default function Dashboard() {
             </div>
           ))}
         </div>
-      </main>
-    </div>
+      </div>
+    </AdminShell>
   );
 }

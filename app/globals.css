@@ -570,26 +570,47 @@ html {
 
 /* =====================================================================
    Bascule clair / sombre
-   L'API View Transitions n'existe pas avant Safari 18 et reste récente
-   ailleurs : on ne s'appuie donc pas dessus. Un simple calque animé en
-   JavaScript donne le même geste, à l'identique partout, et sans le coût
-   de la capture d'écran que cette API impose.
+
+   La version précédente posait un calque de couleur unie et l'ouvrait en
+   cercle : elle révélait donc un aplat, puis le retirait d'un coup sur la
+   vraie page. C'est ce saut de fin de course qu'on lisait comme un manque
+   de fluidité — l'animation tournait bien, mais elle ne montrait pas la
+   page qu'elle prétendait dévoiler.
+
+   L'API View Transitions capture l'ancienne et la nouvelle page réelles et
+   découpe de l'une à l'autre : plus d'aplat intermédiaire, plus de saut.
+   Elle est désormais disponible sur Chrome, Edge, Safari 18 et Firefox
+   récent ; ailleurs on retombe sur le fondu de couleurs que le body porte
+   déjà, ce qui reste doux même sans le geste circulaire.
    ===================================================================== */
-.theme-sweep-layer {
-  position: fixed;
-  inset: 0;
-  z-index: 9999;
-  pointer-events: none;
-  will-change: clip-path, opacity;
+::view-transition-old(root),
+::view-transition-new(root) {
+  /* Les fondus par défaut se superposeraient au découpage circulaire et
+     donneraient un voile laiteux à mi-parcours. */
+  animation: none;
+  mix-blend-mode: normal;
+}
+::view-transition-old(root) {
+  z-index: 1;
+}
+::view-transition-new(root) {
+  z-index: 2;
 }
 
-/* Pendant la bascule, on retire ce qui entre en concurrence avec elle :
-   le fondu de couleur du body brouillait le geste, et les animations
-   permanentes consomment des images au pire moment. */
+/* La classe n'est posée QUE sur le chemin View Transitions.
+   Le body porte un fondu de 0,6 s sur ses couleurs : laissé actif, la
+   capture de la « nouvelle » page serait prise en plein fondu et montrerait
+   encore l'ancienne teinte — le cercle dévoilerait alors la mauvaise page.
+   On le neutralise ici, et le découpage circulaire fait tout le travail.
+   Sur le chemin de repli, la classe n'est pas posée : le fondu joue, et
+   c'est lui qui adoucit la bascule. */
 html.theme-swapping body,
 html.theme-swapping section {
   transition: none !important;
 }
+
+/* Le temps de la bascule seulement : les animations permanentes
+   consomment des images au pire moment. */
 html.theme-swapping .aurora span,
 html.theme-swapping .liquid-glass > .liquid-sheen,
 html.theme-swapping .neon-travel::before {

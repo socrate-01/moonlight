@@ -47,7 +47,12 @@ export default function Hero() {
         className="absolute inset-x-0 bottom-0 h-2/3 bg-gradient-to-t from-black via-black/45 to-transparent"
       />
 
-      <div className="relative z-10 mx-auto w-full max-w-[110rem] px-6 pb-14 lg:px-10 lg:pb-20">
+      {/* La marge basse doit dégager le repère de défilement, centré à 2 rem
+          du bord et haut d'environ 4 rem. Avec l'ancien pb-14, la rangée
+          « Réserver une date » descendait dans cette zone : sur téléphone la
+          capsule tombait littéralement derrière le bouton, puisque le bloc
+          d'actions passe pleine largeur sous 640 px. */}
+      <div className="relative z-10 mx-auto w-full max-w-[110rem] px-6 pb-32 sm:pb-28 lg:px-10 lg:pb-24">
         {/* Nom complet sur deux lignes, dimensionnées pour aboutir à la même
             largeur : le bloc se lit comme un pavé plein, pas comme un titre
             suivi d'un sous-titre. Chaque ligne se lève de sa propre fenêtre. */}
