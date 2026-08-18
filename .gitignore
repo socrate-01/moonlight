@@ -22,3 +22,7 @@ npm-debug.log*
 /cocktailBanner.jpg
 /cocktailBar.avif
 .env*
+
+# Captures d écran de travail
+/mobile.*
+/*.PNG
