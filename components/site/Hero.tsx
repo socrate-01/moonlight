@@ -42,17 +42,21 @@ export default function Hero() {
       {/* Le bas vire au noir opaque : la section suivante démarre sur la même
           valeur, si bien que la photo se dissout dans la page au lieu de s'y
           interrompre net. */}
+      {/* Sur téléphone le cadrage remonte le verre, si bien que le titre tombe
+          sur la zone la plus claire de la photo et s'y délavait. Le voile y
+          monte plus haut et plus dense ; au-delà, le cadrage large redonne du
+          sombre sous le texte et l'ancien réglage suffit. */}
       <div
         aria-hidden
-        className="absolute inset-x-0 bottom-0 h-2/3 bg-gradient-to-t from-black via-black/45 to-transparent"
+        className="absolute inset-x-0 bottom-0 h-[78%] bg-gradient-to-t from-black via-black/60 to-transparent sm:h-2/3 sm:via-black/45"
       />
 
-      {/* La marge basse doit dégager le repère de défilement, centré à 2 rem
-          du bord et haut d'environ 4 rem. Avec l'ancien pb-14, la rangée
-          « Réserver une date » descendait dans cette zone : sur téléphone la
-          capsule tombait littéralement derrière le bouton, puisque le bloc
-          d'actions passe pleine largeur sous 640 px. */}
-      <div className="relative z-10 mx-auto w-full max-w-[110rem] px-6 pb-32 sm:pb-28 lg:px-10 lg:pb-24">
+      {/* Sur téléphone, le repère de défilement est masqué (voir plus bas) :
+          la marge basse n'a donc plus à le dégager et redevient normale. La
+          gonfler pour éviter la collision remontait tout le bloc et laissait
+          une bande vide sous le texte — le contenu paraissait tassé en haut.
+          Au-delà de 640 px le repère réapparaît, et la marge le dégage. */}
+      <div className="relative z-10 mx-auto w-full max-w-[110rem] px-6 pb-16 sm:pb-28 lg:px-10 lg:pb-24">
         {/* Nom complet sur deux lignes, dimensionnées pour aboutir à la même
             largeur : le bloc se lit comme un pavé plein, pas comme un titre
             suivi d'un sous-titre. Chaque ligne se lève de sa propre fenêtre. */}
@@ -67,7 +71,7 @@ export default function Hero() {
                 animate={{ y: 0 }}
                 transition={{ duration: 1.5, delay: l.delay, ease }}
                 style={{ fontSize: l.size }}
-                className="block whitespace-nowrap font-normal leading-[0.98] tracking-[0.02em]"
+                className="block whitespace-nowrap font-normal leading-[1.06] tracking-[0.02em] sm:leading-[0.98]"
               >
                 {l.text}
               </motion.span>
@@ -79,24 +83,28 @@ export default function Hero() {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ duration: 1.2, delay: 1.1 }}
-          className="mt-8 flex flex-col gap-8 border-t border-white/15 pt-7 sm:flex-row sm:items-end sm:justify-between"
+          /* Respiration plus large sur téléphone : c'est la seule largeur où
+             les deux blocs s'empilent, et où le manque d'air se voit. */
+          className="mt-11 flex flex-col gap-10 border-t border-white/15 pt-9 sm:mt-8 sm:flex-row sm:items-end sm:justify-between sm:gap-8 sm:pt-7"
         >
           <div>
             <p className="font-sans text-[10px] uppercase tracking-[0.36em] text-white/60">
               Bar à cocktails mobile · Montréal
             </p>
-            <p className="mt-3 max-w-sm font-sans text-[13px] font-light leading-[1.9] text-white/70">
+            <p className="mt-4 max-w-sm font-sans text-[14px] font-light leading-[2] text-white/70 sm:mt-3 sm:text-[13px] sm:leading-[1.9]">
               Comptoir, verrerie, glace et équipe, installés là où vous célébrez.
             </p>
           </div>
 
-          <div className="flex flex-wrap items-center gap-x-8 gap-y-4">
-            <Link href="/reservation" className="btn-luxe">
+          {/* Empilés et pleine largeur sur téléphone : côte à côte, le bouton
+             et le lien se repliaient sur deux lignes désalignées. */}
+          <div className="flex w-full flex-col items-stretch gap-5 sm:w-auto sm:flex-row sm:flex-wrap sm:items-center sm:gap-x-8 sm:gap-y-4">
+            <Link href="/reservation" className="btn-luxe w-full sm:w-auto">
               Réserver une date
             </Link>
             <Link
               href="/nos-cocktails"
-              className="group inline-flex items-center gap-2.5 font-sans text-[11px] uppercase tracking-[0.22em] text-white/80 transition-colors duration-500 hover:text-white"
+              className="group inline-flex items-center justify-center gap-2.5 font-sans text-[11px] uppercase tracking-[0.22em] text-white/80 transition-colors duration-500 hover:text-white sm:justify-start"
             >
               Voir la carte
               <span className="transition-transform duration-500 group-hover:translate-x-1.5">
@@ -113,7 +121,11 @@ export default function Hero() {
       {/* Le recentrage vit sur un conteneur, pas sur l'élément animé :
           framer-motion écrit sa propre valeur `transform` pour animer, ce qui
           écraserait un `-translate-x-1/2` posé par une classe. */}
-      <div className="absolute bottom-8 left-1/2 z-20 -translate-x-1/2">
+      {/* Masqué sur téléphone : l'écran y est trop court pour loger à la fois
+          le titre, les actions et ce repère sans que rien ne se chevauche —
+          et sur mobile on fait défiler d'instinct, l'indication ne manque à
+          personne. */}
+      <div className="absolute bottom-8 left-1/2 z-20 hidden -translate-x-1/2 sm:block">
       <motion.button
         type="button"
         onClick={() => scrollToElement("suite", 1700, 110)}
